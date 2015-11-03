@@ -393,7 +393,7 @@ def animate(i):
                 # serialData = ""
                 break
             # print(serialData)
-            fo = open(LogName, "a")
+            fo = open(LogName, "a+")
             fo.write(serialData)
             fo.close()
 
@@ -423,7 +423,7 @@ def animate(i):
     if (PlotLoad or Counter):
         global Counter
         Counter = 0
-        fo2 = open(LogName, "r")
+        fo2 = open(LogName, "r+")
         getData = fo2.read()
         fo2.close()
         dataLine = getData.split('\n')
