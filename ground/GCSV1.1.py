@@ -423,8 +423,11 @@ def animate(i):
     if (PlotLoad or Counter):
         global Counter
         Counter = 0
-        fo2 = open(LogName, "r+")
-        getData = fo2.read()
+        try:
+	    fo2 = open(LogName, "r")
+        except:
+	    fo2 = open(LogName, "a+")
+	getData = fo2.read()
         fo2.close()
         dataLine = getData.split('\n')
         datalnList = []
