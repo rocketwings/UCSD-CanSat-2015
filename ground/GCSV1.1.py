@@ -1,3 +1,6 @@
+# ---------------------------------------------------------------------------------------
+# Libraries
+# ---------------------------------------------------------------------------------------
 import Tkinter as tk
 from datetime import datetime
 import ttk
@@ -15,7 +18,9 @@ import sys
 import tkMessageBox
 # from matplotlib.figure import Figure
 # from Tkinter import ttk
-
+# ---------------------------------------------------------------------------------------
+# globals
+# --------------------------------------------------------------------------------------- 
 LARGE_FONT = ("Verdana", 12)
 MEDIUM_FONT = ("Verdana", 10)
 SMALL_FONT = ("Verdana", 8)
@@ -65,9 +70,12 @@ PlotLoad = True
 
 
 # print("Initial Parameters Set")
-
+# ---------------------------------------------------------------------------------------
+# Classes
+# ---------------------------------------------------------------------------------------
 
 class MainWindow(tk.Tk):
+    # Creates the main window with filemenus and pages
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
 
@@ -151,11 +159,12 @@ class MainWindow(tk.Tk):
         self.show_frame(PageThree)
 
     def show_frame(self, cont):
-
+	# raises the given frame in frames	
         frame = self.frames[cont]
         frame.tkraise()
 
     def endprog(self):
+	# ends the entire program
         global ThreadExit
         ThreadExit = True
         self.destroy()
@@ -163,15 +172,18 @@ class MainWindow(tk.Tk):
         sys.exit(0)
 
     def PopPortDia(self, msg):
-
+	# method for the port dialogue
         def leavemini():
+	    # method to destroy the popup
             pop.destroy()
 
         def EstablishSerial():
+	# method that starts the serial thread 
             global SerialPort
             SerialThreadStart(SerialPort)
 
         def get_set_parameter():
+	# sets the serial port global variable and checks for port existence
             global SerialPort
             global PortSet
             SerialPort = Entry.get()
@@ -188,7 +200,7 @@ class MainWindow(tk.Tk):
 
             else:
                 self.popup("Not a Valid Port, Try Again")
-
+	# GUI elements
         pop = tk.Toplevel(self)
         pop.grab_set()
         pop.resizable(width=False, height=False)
@@ -204,6 +216,7 @@ class MainWindow(tk.Tk):
         pop.mainloop()
 
     def popup(self, msg):
+	# generic popup box with message input option
 
         def leavemini():
             pop.destroy()
@@ -219,7 +232,7 @@ class MainWindow(tk.Tk):
         pop.mainloop()
 
     def popup2(self, msg, popfather):
-
+	# method for the port popup after a previous popup excecutes (popup2popup)
         def leavemini():
             pop.destroy()
 
@@ -258,7 +271,7 @@ class MainWindow(tk.Tk):
         pop.mainloop()
 
     def popup2popup(self, msg1, msg2):
-
+	# Creates a popup that opens popup2 after button press
         def leavemini():
             pop.destroy()
 
