@@ -220,7 +220,7 @@ class MainWindow(tk.Tk):
 
         def leavemini():
             pop.destroy()
-
+	# GUI elements
         pop = tk.Toplevel(self)
         pop.grab_set()
         pop.resizable(width=False, height=False)
@@ -231,62 +231,10 @@ class MainWindow(tk.Tk):
         B1.pack()
         pop.mainloop()
 
-    def popup2(self, msg, popfather):
-	# method for the port popup after a previous popup excecutes (popup2popup)
-        def leavemini():
-            pop.destroy()
 
-        def get_set_parameter():
-            global SerialPort
-            global PortSet
-            SerialPort = Entry.get()
-
-            SerialPort.upper()
-
-            if (SerialPort.startswith("COM")):
-                try:
-                    testSerial = serial.Serial(port=SerialPort)
-                    testSerial.close()
-                    PortSet = True
-                    pop.destroy()
-                except serial.SerialException:
-                    self.popup("Nothing connected to Port, Try Again")
-
-            else:
-                self.popup("Not a Valid Port, Try Again")
-
-        popfather.destroy()
-        pop = tk.Toplevel(self)
-        pop.grab_set()
-        pop.resizable(width=False, height=False)
-        pop.wm_title("!")
-        label = ttk.Label(pop, text=msg, font=MEDIUM_FONT)
-        label.pack(side="top", fill="x", pady=10, padx=5)
-
-        Entry = ttk.Entry(pop)
-        Entry.pack(side="top", fill='x', pady=10, padx=5)
-
-        B1 = ttk.Button(pop, text="Okay", command=lambda: get_set_parameter())
-        B1.pack()
-        pop.mainloop()
-
-    def popup2popup(self, msg1, msg2):
-	# Creates a popup that opens popup2 after button press
-        def leavemini():
-            pop.destroy()
-
-        pop = tk.Toplevel(self)
-        pop.grab_set()
-        pop.resizable(width=False, height=False)
-        pop.wm_title("!")
-        label = ttk.Label(pop, text=msg1, font=MEDIUM_FONT)
-        label.pack(side="top", fill="x", pady=10)
-        B1 = ttk.Button(pop, text="Okay", command=lambda: self.popup2(msg2, pop))
-        B1.pack()
-        pop.mainloop()
 
     def popup1(self, msg, msg2, commandstr):
-
+	# this popup is for displaying a warning before changing the Serial control global variable
         def leavemini():
             pop.destroy()
 
@@ -306,6 +254,7 @@ class MainWindow(tk.Tk):
 
 
 class StartPage(tk.Frame):
+    # creates a blank start page may be used later for something
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.configure(bg="white", highlightcolor="white", highlightbackground="white")
@@ -318,6 +267,8 @@ class StartPage(tk.Frame):
 
 
 class PageThree(tk.Frame):
+    # creates the main page, was called page three may change name later 
+    # contains all the GUI elements of the plot page
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
 
@@ -381,6 +332,8 @@ class PageThree(tk.Frame):
                           padx=1)
 
     def GetSetPlotRange(self):
+	# sets the global NumberOfPoints from the entry box 
+	# has some limiting if statements
         global NumberOfPoints
         string = self.rangeentry1.get()
         try:
@@ -397,6 +350,8 @@ class PageThree(tk.Frame):
 
 
 def animate(i):
+    # this function runs every second and interupts the software loop.
+    # basically the backend of the program
     if (SerialCommsIndicator == "Start Serial" and ThreadStart == True):
         while (True):
             try:
@@ -434,6 +389,7 @@ def animate(i):
         # print("stopping serial")
 
     if (PlotLoad or Counter):
+	# major if statement that opens log file and reads as well as writes to it
         global Counter
         Counter = 0
         try:
@@ -714,6 +670,7 @@ def animate(i):
 
 
 def ChangeDisplay(WhatDisp, WhatMeth):
+    # method that changes the displayed plot on the graph frame
     global GraphParam
     global MethodName
     global Counter
@@ -724,6 +681,8 @@ def ChangeDisplay(WhatDisp, WhatMeth):
 
 
 def LoadPlot(run):
+    # method that controls whether to plot to the gui or not. 
+    # useful when navigating on the plots since they update every second
     global PlotLoad
 
     if (run == "start"):
@@ -734,6 +693,7 @@ def LoadPlot(run):
 
 
 def ControlSerial(run, pop):
+    # method that sets the serialcommsindicator global 
     global SerialCommsIndicator
     global ThreadStart
 
@@ -742,7 +702,7 @@ def ControlSerial(run, pop):
                  "Port Not Set!\n\n"
                  "Please Enter a Serial Port "
                  "Before Starting Serial!")
-        pop.destroy()
+        #SerialCommsIndicator = "End Serial"
         pop.destroy()
         return
 
@@ -758,6 +718,7 @@ def ControlSerial(run, pop):
 
 
 def parse_serial(dataln):
+    # parses log file into list of packet strings (each line is a packet string)
     previous = 0
     mylist = []
     for detected, val in enumerate(dataln):
@@ -770,6 +731,8 @@ def parse_serial(dataln):
 
 
 def SerialComm(port, dataq, statusq):
+    # this method sets up the serial port and starts serial comms. 
+    # it automatically ends during a serial exception (loss of connection)
     try:
         # print("thread start")
         serialObj = serial.Serial(port=port,
@@ -827,6 +790,7 @@ def SerialComm(port, dataq, statusq):
 
 
 def SerialThreadStart(port):
+    # this method starts the serial comms on a separate thread so as not to interrupt the GUI loop
     t = threading.Thread(target=SerialComm, args=(port, serialq, serialStateq))
     t.daemon = True
     t.start()
@@ -834,7 +798,7 @@ def SerialThreadStart(port):
     ThreadStart = True
 
 
-
+# initialization and program start
 
 ob = MainWindow()
 ob.geometry("1280x720")
