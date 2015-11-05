@@ -187,12 +187,17 @@ class MainWindow(tk.Tk):
             global SerialPort
             global PortSet
             SerialPort = Entry.get()
-            SerialPort = SerialPort.upper()
+	    print("you inputed:")
+	    print(SerialPort)
+            
             if (SerialPort.startswith("COM")):
+	        SerialPort = SerialPort.upper()
+
+	    if (True):
                 try:
                     testSerial = serial.Serial(port=SerialPort)
                     testSerial.close()
-                    PortSet = True
+                    PortSet = True  # this may not be reseting when disconnection occurs
                     EstablishSerial()
                     pop.destroy()
                 except serial.SerialException:
@@ -390,6 +395,7 @@ def animate(i):
 
     if (PlotLoad or Counter):
 	# major if statement that opens log file and reads as well as writes to it
+	# in addition updates plot from log file
         global Counter
         Counter = 0
         try:
