@@ -7,11 +7,11 @@
 #include <math.h>
 
 #define BAUD 9600
-#define TIME_TOL  10.  //time tolerance in percent
+#define TIME_TOL  1.  //time tolerance in percent
 #define SEND_PER  1000  //send period in milliseconds
 
-int last_send = 0;
-int this_send = 0;
+unsigned long last_send = 0;
+unsigned long this_send = 0;
 int pos = 0;
 int packet_count = 0;
 
@@ -101,16 +101,34 @@ void loop() {
       last_send = this_send;
       packet_count++;
       Serial.println("==========DATA==============");
+      Serial.print(packet_count);
+      Serial.print(",\t");
       Serial.print(data[pos].time);
+      Serial.print(",\t");
+      Serial.print(data[pos].pressure);
+      Serial.print(",\t");
+      Serial.print(data[pos].altitude);
+      Serial.print(",\t");
+      Serial.print(data[pos].temp);
       Serial.print(",\t");
       Serial.print(data[pos].gyro_x);
       Serial.print(",\t");
       Serial.print(data[pos].gyro_y);
       Serial.print(",\t");
       Serial.print(data[pos].gyro_z);
+      Serial.print(",\t");
+      Serial.print(data[pos].compass_ax);
+      Serial.print(",\t");
+      Serial.print(data[pos].compass_ay);
+      Serial.print(",\t");
+      Serial.print(data[pos].compass_az);
+      Serial.print(",\t");
+
+
       Serial.println();
     }
   }
-    
-  delay(1);        // delay in between reads for stability
+  else  {
+    delay(1);        // delay in between reads for stability
+  }
 }
