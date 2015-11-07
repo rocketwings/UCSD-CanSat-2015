@@ -1,14 +1,100 @@
+#include <Wire.h>
+#include <LSM303.h>
+#include <LPS.h>
+#include <L3G.h>
+#include <SoftwareSerial.h>
+
+#include <math.h>
+
+#define BAUD 9600
+#define TIME_TOL  10.  //time tolerance in percent
+#define SEND_PER  1000  //send period in milliseconds
+
+int last_send = 0;
+int this_send = 0;
+int pos = 0;
+
+L3G gyro;
+LPS ps;
+LSM303 compass;
+SoftwareSerial Xbee(8,15);  // RX, TX
+
+typedef struct Packet {
+  long time;
+  float pressure;
+  float altitude;
+  float temp;
+  float voltage;
+  float airspeed;
+  float gyro_x;
+  float gyro_y;
+  float gyro_z;
+  float compass_ax;
+  float compass_ay;
+  float compass_az;
+  float compass_mx;
+  float compass_my;
+  float compass_mz;
+} Packet_t;
+
+Packet_t data[60];
+Packet_t avg[60];
 
 void setup() {
-  // initialize serial communication at 9600 bits per second:
-  Serial.begin(9600);
+  // initialize serial communication at BAUD bits per second:
+  Serial.begin(BAUD);
+  Wire.begin();
+
+  if (!ps.init()) {
+    Serial.println("Failed to autodetect pressure sensor!");
+  }
+  if (!gyro.init()) {
+    Serial.println("Failed to autodetect gyro!");
+  }
+  if (!compass.init()) {
+    Serial.println("Failed to autodetect compass!");
+  }
+  gyro.enableDefault();
+  ps.enableDefault();
+  compass.enableDefault();
+
+
 }
 
 // the loop routine runs over and over again forever:
 void loop() {
   // read the input on analog pin 0:
-  int sensorValue = analogRead(A0);
+  // int sensorValue = analogRead(A0);
   // print out the value you read:
-  Serial.println(sensorValue);
+  // Serial.println(sensorValue);
+
+
+  // read data
+  data[pos].time = millis();
+  data[pos].pressure = ps.readPressureMillibars();
+  data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure);
+  data[pos].temp = ps.readTemperatureC();
+  gyro.read();
+  data[pos].gyro_x = gyro.g.x;
+  data[pos].gyro_y = gyro.g.y;
+  data[pos].gyro_z = gyro.g.z;
+  compass.read();
+  data[pos].compass_ax = compass.a.x;
+  data[pos].compass_ay = compass.a.y;
+  data[pos].compass_az = compass.a.z;
+  data[pos].compass_mx = compass.m.x;
+  data[pos].compass_my = compass.m.y;
+  data[pos].compass_mz = compass.m.z;
+  pos++;
+
+  //send data
+  this_send = millis() % 1000;
+  if (this_send < TIME_TOL*SEND_PER/100. || this_send > (100-TIME_TOL)*SEND_PER/100)  {
+    //send data
+  }
+    
+
+
+
   delay(1);        // delay in between reads for stability
 }
