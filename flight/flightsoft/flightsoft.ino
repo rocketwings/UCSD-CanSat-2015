@@ -13,6 +13,7 @@
 int last_send = 0;
 int this_send = 0;
 int pos = 0;
+int packet_count = 0;
 
 L3G gyro;
 LPS ps;
@@ -93,19 +94,22 @@ void loop() {
     pos = 0;
   }
   //send data
-  this_send = millis() % 1000;
-//  Serial.println(this_send);
-  if (this_send < TIME_TOL*SEND_PER/100. || this_send > (100-TIME_TOL)*SEND_PER/100)  {
-    //send data
-    Serial.println("==========DATA==============");
-    Serial.print(data[pos].time);
-    Serial.print(",\t");
-    Serial.print(data[pos].gyro_x);
-    Serial.print(",\t");
-    Serial.print(data[pos].gyro_y);
-    Serial.print(",\t");
-    Serial.print(data[pos].gyro_z);
-    Serial.println();
+  this_send = millis();
+  if (this_send - last_send > .5*SEND_PER)  {
+    if (this_send%1000 < TIME_TOL*SEND_PER/100. || this_send%1000 > (100-TIME_TOL)*SEND_PER/100)  {
+      //send data
+      last_send = this_send;
+      packet_count++;
+      Serial.println("==========DATA==============");
+      Serial.print(data[pos].time);
+      Serial.print(",\t");
+      Serial.print(data[pos].gyro_x);
+      Serial.print(",\t");
+      Serial.print(data[pos].gyro_y);
+      Serial.print(",\t");
+      Serial.print(data[pos].gyro_z);
+      Serial.println();
+    }
   }
     
   delay(1);        // delay in between reads for stability
