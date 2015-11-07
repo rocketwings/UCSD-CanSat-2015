@@ -37,27 +37,31 @@ typedef struct Packet {
   float compass_mz;
 } Packet_t;
 
-Packet_t data[60];
-Packet_t avg[60];
+Packet_t data[10];
+Packet_t avg[10];
 
 void setup() {
   // initialize serial communication at BAUD bits per second:
   Serial.begin(BAUD);
   Wire.begin();
+  Serial.println("lkdsfoijewaflkjfds");
 
   if (!ps.init()) {
     Serial.println("Failed to autodetect pressure sensor!");
   }
+  Serial.println("1");
   if (!gyro.init()) {
     Serial.println("Failed to autodetect gyro!");
   }
+    Serial.println("2");
   if (!compass.init()) {
     Serial.println("Failed to autodetect compass!");
   }
+    Serial.println("3");
   gyro.enableDefault();
   ps.enableDefault();
   compass.enableDefault();
-
+    Serial.println("lkdsfoijewaflkjfds2");
 
 }
 
@@ -67,7 +71,6 @@ void loop() {
   // int sensorValue = analogRead(A0);
   // print out the value you read:
   // Serial.println(sensorValue);
-
 
   // read data
   data[pos].time = millis();
@@ -86,12 +89,22 @@ void loop() {
   data[pos].compass_my = compass.m.y;
   data[pos].compass_mz = compass.m.z;
   pos++;
-
+  if(pos > 9)  {
+    pos = 0;
+  }
   //send data
   this_send = millis() % 1000;
+//  Serial.println(this_send);
   if (this_send < TIME_TOL*SEND_PER/100. || this_send > (100-TIME_TOL)*SEND_PER/100)  {
     //send data
+    Serial.println("==========DATA==============");
     Serial.print(data[pos].time);
+    Serial.print(",\t");
+    Serial.print(data[pos].gyro_x);
+    Serial.print(",\t");
+    Serial.print(data[pos].gyro_y);
+    Serial.print(",\t");
+    Serial.print(data[pos].gyro_z);
     Serial.println();
   }
     
