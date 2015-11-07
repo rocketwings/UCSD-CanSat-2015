@@ -91,10 +91,9 @@ void loop() {
   this_send = millis() % 1000;
   if (this_send < TIME_TOL*SEND_PER/100. || this_send > (100-TIME_TOL)*SEND_PER/100)  {
     //send data
+    Serial.print(data[pos].time);
+    Serial.println();
   }
     
-
-
-
   delay(1);        // delay in between reads for stability
 }
