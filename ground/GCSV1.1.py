@@ -2,6 +2,8 @@
 # Libraries
 # ---------------------------------------------------------------------------------------
 import Tkinter as tk
+from Tkinter import Tk
+from Tkinter import StringVar
 from datetime import datetime
 import ttk
 import serial
@@ -62,6 +64,9 @@ SerialCommsIndicator = "Stop Serial"
 serialStateq.put("Stop Serial")
 SerialPort = ""
 
+
+PointSymbol = '.'
+MarkerSize = 5
 PortSet = False
 ThreadExit = False
 ThreadStart = False
@@ -76,8 +81,10 @@ PlotLoad = True
 
 class MainWindow(tk.Tk):
     # Creates the main window with filemenus and pages
+    
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
+	
 
         self.configure(bg="white", highlightcolor="white", highlightbackground="white")
 
@@ -156,7 +163,9 @@ class MainWindow(tk.Tk):
             frame.grid(row=0, column=0, sticky="nsew")
 
         self.show_frame(PageThree)
-
+	
+    
+    
     def show_frame(self, cont):
         # raises the given frame in frames
         frame = self.frames[cont]
@@ -271,7 +280,7 @@ class PageThree(tk.Frame):
     # contains all the GUI elements of the plot page
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-
+	
         self.configure(bg=PADDING_COLOR, highlightcolor=PADDING_COLOR, highlightbackground=PADDING_COLOR)
 
         canvas = FigureCanvasTkAgg(f, self)
@@ -326,12 +335,71 @@ class PageThree(tk.Frame):
         self.rangeentry1.grid(row=3, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
         rangebutton = ttk.Button(buttonsFrame, text="Update Range", cursor='hand2', command=self.GetSetPlotRange)
         rangebutton.grid(row=4, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
-
-        toolbar = NavigationToolbar2TkAgg(canvas, frame2)
+	#--------------------------------------------------------------------------------------------------------------
+       
+	mfFrame = tk.Frame(buttonsFrame)
+	mfFrame.grid(row=5,column=0,columnspan=2,sticky='nsew',padx=5,pady=5)
+        mfFrame.configure(bg=BACKGROUND_COLOR, highlightcolor=BACKGROUND_COLOR,
+                               highlightbackground=BACKGROUND_COLOR)
+	mfscrollbar = tk.Scrollbar(mfFrame)
+	mfscrollbar.grid(row=0,column=2,sticky='NS')
+	self.marklistbox = tk.Listbox(mfFrame, selectmode=tk.SINGLE, yscrollcommand=mfscrollbar.set)
+	self.marklistbox.grid(row=0,column=0,columnspan=2,sticky='nsew')
+	mfscrollbar.config(command=self.marklistbox.yview)
+	markerlist = ['point','pixel',
+                   'circle','triangledown',
+                   'triangleup','triangleleft',
+                   'triangleright','octagon',
+                   'square','pentagon',
+                   'star','hexagon1',
+                   'hexagon2','plus',
+                   'X','diamond',
+                   'thindiamond','vline',
+                   'hline','None']
+	for marker in markerlist:
+	    self.marklistbox.insert(tk.END, marker)
+	mkbutton = ttk.Button(mfFrame, text='Set Marker',cursor='hand2',command=lambda:self.GetSetMarkerSymbol())
+	mkbutton.grid(row=1,column=1,columnspan=1,sticky='NS',padx=5,pady=5) 	
+	self.mksize = tk.Entry(mfFrame,width=5)
+	self.mksize.grid(row=1,column=0,padx=5,pady=5)
+	
+	toolbar = NavigationToolbar2TkAgg(canvas, frame2)
         toolbar.update()
         toolbar.configure(bg=BACKGROUND_COLOR, highlightcolor=BACKGROUND_COLOR, highlightbackground=BACKGROUND_COLOR,
                           padx=1)
-
+    
+    def GetSetMarkerSymbol(self):
+	# this method sets the symbol of the plot points
+	global PointSymbol
+	global MarkerSize
+	Size = self.mksize.get()
+	PointOption = self.marklistbox.curselection()
+	print('Marker Size: '+str(Size))
+	print('Marker Selection: '+str(PointOption))
+	markers = ['.',',',
+                   'o','v',
+                   '^','<',
+                   '>','8',
+                   's','p',
+                   '*','h',
+                   'H','+',
+                   'x','D',
+                   'd','|',
+                   '_','None']
+	try:
+	    PointOption = PointOption[0]
+	    PointSymbol = markers[PointOption]
+	    
+	except:
+	    PointSymbol = PointSymbol
+	try:
+	    if (float(Size) <= 0):
+	        return
+	    MarkerSize = float(Size)
+	    print(MarkerSize)
+	except ValueError:
+	    pass
+    
     def GetSetPlotRange(self):
         # sets the global NumberOfPoints from the entry box
         # has some limiting if statements
@@ -379,14 +447,10 @@ def animate(i):
             # print("clearstart")
         serialStateq.put("End Serial", 0)
             # print("clearstart")
-        serialStateq.put("Stop Serial", 0)
         # print("stopping serial")
 
     elif(ThreadStart == False):
-        print("Threadstart is false, clearing serialstateq")
-
         if(serialStateq.empty()):
-            print("serialstateq is empty")
             # print("clearstart")
             serialStateq.put("Stop Serial", 0)
 	    global SerialCommsIndicator
@@ -441,31 +505,31 @@ def animate(i):
 	if (GraphParam != "All"):
             a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
             if (GraphParam == "Altitude"):
-	        ViewPlot(a, timeDates, altList, dateindex, title="Altitude", color=ALTITUDE_COLOR)
+	        ViewPlot(a, timeDates, altList, dateindex, title="Altitude", color=ALTITUDE_COLOR,marker=PointSymbol,markersize=MarkerSize)
             if (GraphParam == "Pressure"):
-                ViewPlot(a, timeDates, pressList, dateindex, title="Pressure", color=PRESSURE_COLOR)   
+                ViewPlot(a, timeDates, pressList, dateindex, title="Pressure", color=PRESSURE_COLOR, marker=PointSymbol,markersize=MarkerSize)   
             if (GraphParam == "Speed"):
-                ViewPlot(a, timeDates, spdList, dateindex, title="Speed", color=SPEED_COLOR) 
+                ViewPlot(a, timeDates, spdList, dateindex, title="Speed", color=SPEED_COLOR, marker=PointSymbol,markersize=MarkerSize) 
             if (GraphParam == "Temperature"):
-                ViewPlot(a, timeDates, tempList, dateindex, title="Temperature", color=TEMPERATURE_COLOR)
+                ViewPlot(a, timeDates, tempList, dateindex, title="Temperature", color=TEMPERATURE_COLOR, marker=PointSymbol,markersize=MarkerSize)
             if (GraphParam == "Voltage"):
-		ViewPlot(a, timeDates, voltList, dateindex, title="Voltage", color=VOLTAGE_COLOR)
+		ViewPlot(a, timeDates, voltList, dateindex, title="Voltage", color=VOLTAGE_COLOR, marker=PointSymbol,markersize=MarkerSize)
             if (GraphParam == "GPS Speed"):
-                ViewPlot(a, timeDates, gpsspdList, dateindex, title="GPS Speed", color=GPSSPD_COLOR) 
+                ViewPlot(a, timeDates, gpsspdList, dateindex, title="GPS Speed", color=GPSSPD_COLOR, marker=PointSymbol,markersize=MarkerSize) 
 
         if (GraphParam == "All"):
             a = plt.subplot2grid((4, 6), (0, 0), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-	    ViewPlot(a, timeDates, altList, dateindex, title="Altitude", color=ALTITUDE_COLOR)
+	    ViewPlot(a, timeDates, altList, dateindex, title="Altitude", color=ALTITUDE_COLOR, marker=PointSymbol,markersize=MarkerSize)
             p = plt.subplot2grid((4, 6), (0, 2), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-	    ViewPlot(p, timeDates, pressList, dateindex, title="Pressure", color=PRESSURE_COLOR)
+	    ViewPlot(p, timeDates, pressList, dateindex, title="Pressure", color=PRESSURE_COLOR, marker=PointSymbol,markersize=MarkerSize)
 	    s = plt.subplot2grid((4, 6), (0, 4), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            ViewPlot(s, timeDates, spdList, dateindex, title="Speed", color=SPEED_COLOR)
+            ViewPlot(s, timeDates, spdList, dateindex, title="Speed", color=SPEED_COLOR, marker=PointSymbol,markersize=MarkerSize)
 	    t = plt.subplot2grid((4, 6), (2, 0), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-	    ViewPlot(t, timeDates, tempList, dateindex, title="Temperature", color=TEMPERATURE_COLOR)
+	    ViewPlot(t, timeDates, tempList, dateindex, title="Temperature", color=TEMPERATURE_COLOR, marker=PointSymbol,markersize=MarkerSize)
 	    v = plt.subplot2grid((4, 6), (2, 2), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-	    ViewPlot(v, timeDates, voltList, dateindex, title="Voltage", color=VOLTAGE_COLOR)
+	    ViewPlot(v, timeDates, voltList, dateindex, title="Voltage", color=VOLTAGE_COLOR, marker=PointSymbol,markersize=MarkerSize)
 	    g = plt.subplot2grid((4, 6), (2, 4), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-	    ViewPlot(g, timeDates, gpsspdList, dateindex, title="GPS Speed", color=GPSSPD_COLOR)
+	    ViewPlot(g, timeDates, gpsspdList, dateindex, title="GPS Speed", color=GPSSPD_COLOR, marker=PointSymbol,markersize=MarkerSize)
 	    
         plt.tight_layout(pad=3)
 
@@ -493,7 +557,7 @@ def LoadPlot(run):
         PlotLoad = False
 
 def ViewPlot(PltObj,Dates,Ylist,dateindex,xlabel="Time",title="Plot",timefmt="%I:%M:%S",
-	     linestyle='-',color="#00EE76",marker='.',alpha=.7,
+	     linestyle='-',color="#00EE76",marker='.',markersize=5,alpha=.7,
 	     antialiased=True,solid_capstyle='round',solid_joinstyle='bevel'):
     # This method will plot a trace given the inputed lists and other visual parameters
     global NumberOfPoints
@@ -507,6 +571,7 @@ def ViewPlot(PltObj,Dates,Ylist,dateindex,xlabel="Time",title="Plot",timefmt="%I
                 linestyle=linestyle,
                 color=color,
                 marker=marker,
+		markersize=markersize,
                 alpha=alpha,
                 antialiased=antialiased,
                 solid_capstyle=solid_capstyle,
