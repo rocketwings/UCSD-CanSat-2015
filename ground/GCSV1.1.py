@@ -388,7 +388,9 @@ def animate(i):
         if(serialStateq.empty()):
             print("serialstateq is empty")
             # print("clearstart")
-            #serialStateq.put("Stop Serial", 0)
+            serialStateq.put("Stop Serial", 0)
+	    global SerialCommsIndicator
+	    SerialCommsIndicator = "Stop Serial"
 
         # print("stopping serial")
 
