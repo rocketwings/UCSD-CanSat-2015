@@ -105,7 +105,6 @@ class MainWindow(tk.Tk):
                                                                                        "Will be Terminated",
                                                                                        "end"))
 
-
         filemenu.add_separator()
         filemenu.add_command(label="Exit",
                              command=self.endprog)
@@ -159,12 +158,12 @@ class MainWindow(tk.Tk):
         self.show_frame(PageThree)
 
     def show_frame(self, cont):
-	# raises the given frame in frames	
+        # raises the given frame in frames
         frame = self.frames[cont]
         frame.tkraise()
 
     def endprog(self):
-	# ends the entire program
+        # ends the entire program
         global ThreadExit
         ThreadExit = True
         self.destroy()
@@ -172,40 +171,36 @@ class MainWindow(tk.Tk):
         sys.exit(0)
 
     def PopPortDia(self, msg):
-	# method for the port dialogue
+        # method for the port dialogue
         def leavemini():
-	    # method to destroy the popup
+            # method to destroy the popup
             pop.destroy()
 
-        def EstablishSerial():
-	# method that starts the serial thread 
-            global SerialPort
-            SerialThreadStart(SerialPort)
-
         def get_set_parameter():
-	# sets the serial port global variable and checks for port existence
+            # sets the serial port global variable and checks for port existence
             global SerialPort
             global PortSet
             SerialPort = Entry.get()
-	    print("you inputed:")
-	    print(SerialPort)
-            
-            if (SerialPort.startswith("COM")):
-	        SerialPort = SerialPort.upper()
+            print("you inputed:")
+            print(SerialPort)
 
-	    if (True):
+            if (SerialPort.startswith("COM")):
+                SerialPort = SerialPort.upper()
+
+            if (True):
                 try:
                     testSerial = serial.Serial(port=SerialPort)
                     testSerial.close()
                     PortSet = True  # this may not be reseting when disconnection occurs
-                    EstablishSerial()
+                    SerialThreadStart(SerialPort)
                     pop.destroy()
                 except serial.SerialException:
                     self.popup("Nothing connected to Port, Try Again")
 
             else:
                 self.popup("Not a Valid Port, Try Again")
-	# GUI elements
+
+        # GUI elements
         pop = tk.Toplevel(self)
         pop.grab_set()
         pop.resizable(width=False, height=False)
@@ -221,11 +216,12 @@ class MainWindow(tk.Tk):
         pop.mainloop()
 
     def popup(self, msg):
-	# generic popup box with message input option
+        # generic popup box with message input option
 
         def leavemini():
             pop.destroy()
-	# GUI elements
+
+        # GUI elements
         pop = tk.Toplevel(self)
         pop.grab_set()
         pop.resizable(width=False, height=False)
@@ -237,9 +233,8 @@ class MainWindow(tk.Tk):
         pop.mainloop()
 
 
-
     def popup1(self, msg, msg2, commandstr):
-	# this popup is for displaying a warning before changing the Serial control global variable
+        # this popup is for displaying a warning before changing the Serial control global variable
         def leavemini():
             pop.destroy()
 
@@ -324,12 +319,13 @@ class PageThree(tk.Frame):
         button4.grid(row=1, column=1, padx=0, pady=0, sticky='nsew')
 
         rangelabel = tk.Label(buttonsFrame, text="Plot Range", font=SMALL_FONT)
-        rangelabel.grid(row=2,column=0,columnspan=2,sticky='NS', padx=5, pady=5)
-        rangelabel.configure(bg=BACKGROUND_COLOR, fg=TEXT_COLOR, highlightcolor=BACKGROUND_COLOR, highlightbackground=BACKGROUND_COLOR)
+        rangelabel.grid(row=2, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
+        rangelabel.configure(bg=BACKGROUND_COLOR, fg=TEXT_COLOR, highlightcolor=BACKGROUND_COLOR,
+                             highlightbackground=BACKGROUND_COLOR)
         self.rangeentry1 = ttk.Entry(buttonsFrame, width=5)
-        self.rangeentry1.grid(row=3,column=0,columnspan=2,sticky='NS', padx=5, pady=5)
-        rangebutton = ttk.Button(buttonsFrame,text="Update Range", cursor='hand2', command=self.GetSetPlotRange)
-        rangebutton.grid(row=4,column=0,columnspan=2,sticky='NS', padx=5, pady=5)
+        self.rangeentry1.grid(row=3, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
+        rangebutton = ttk.Button(buttonsFrame, text="Update Range", cursor='hand2', command=self.GetSetPlotRange)
+        rangebutton.grid(row=4, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
 
         toolbar = NavigationToolbar2TkAgg(canvas, frame2)
         toolbar.update()
@@ -337,8 +333,8 @@ class PageThree(tk.Frame):
                           padx=1)
 
     def GetSetPlotRange(self):
-	# sets the global NumberOfPoints from the entry box 
-	# has some limiting if statements
+        # sets the global NumberOfPoints from the entry box
+        # has some limiting if statements
         global NumberOfPoints
         string = self.rangeentry1.get()
         try:
@@ -382,27 +378,30 @@ def animate(i):
             serialStateq.queue.clear()
             # print("clearstart")
         serialStateq.put("End Serial", 0)
-        global ThreadStart
-        ThreadStart = False
-        # print("stopping serial")
-
-    elif (ThreadStart == True):
-        with serialStateq.mutex:
-            serialStateq.queue.clear()
             # print("clearstart")
         serialStateq.put("Stop Serial", 0)
         # print("stopping serial")
 
+    elif(ThreadStart == False):
+        print("Threadstart is false, clearing serialstateq")
+
+        if(serialStateq.empty()):
+            print("serialstateq is empty")
+            # print("clearstart")
+            #serialStateq.put("Stop Serial", 0)
+
+        # print("stopping serial")
+
     if (PlotLoad or Counter):
-	# major if statement that opens log file and reads as well as writes to it
-	# in addition updates plot from log file
+        # major if statement that opens log file and reads as well as writes to it
+        # in addition updates plot from log file
         global Counter
         Counter = 0
         try:
-	    fo2 = open(LogName, "r")
+            fo2 = open(LogName, "r")
         except:
-	    fo2 = open(LogName, "a+")
-	getData = fo2.read()
+            fo2 = open(LogName, "a+")
+        getData = fo2.read()
         fo2.close()
         dataLine = getData.split('\n')
         datalnList = []
@@ -703,12 +702,12 @@ def ControlSerial(run, pop):
     global SerialCommsIndicator
     global ThreadStart
 
-    if(ThreadStart == False):
+    if (ThreadStart == False):
         ob.popup("                       "
                  "Port Not Set!\n\n"
                  "Please Enter a Serial Port "
                  "Before Starting Serial!")
-        #SerialCommsIndicator = "End Serial"
+        # SerialCommsIndicator = "End Serial"
         pop.destroy()
         return
 
@@ -760,13 +759,18 @@ def SerialComm(port, dataq, statusq):
         while (True):
 
             # print("looping")
-
-            serState = statusq.get()
-            statusq.put(serState)
+            try:
+                serState = serialStateq.get()
+            except serialStateq.empty:
+                pass
 
             if (serState == "End Serial"):
                 serialObj.close()
+                with serialStateq.mutex:
+                    serialStateq.queue.clear()
                 print("Serial Comms Ended Successfully")
+                global ThreadStart
+                ThreadStart = False
                 return
 
             # print(serState)
@@ -777,7 +781,7 @@ def SerialComm(port, dataq, statusq):
                 if (serialObj.inWaiting() and serState == "Start Serial"):
                     serialData = serialObj.readline()
                     serialObj.flushInput()
-                    dataq.put(serialData, 0)
+                    serialq.put(serialData, 0)
                     print(serState)
                     # dataq.join()
                     # print(serialData)
