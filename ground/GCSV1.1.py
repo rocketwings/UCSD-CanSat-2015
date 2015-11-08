@@ -437,242 +437,36 @@ def animate(i):
 
         timeDates = dates.date2num(timeListConfigured)
 
-        if (GraphParam == "Altitude"):
+        
+	if (GraphParam != "All"):
             a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
-            a.clear()
-            title = "Altitude Plot"
-            a.set_xlabel('Time')
-            a.set_title(title, color=ALTITUDE_COLOR)
-
-            a.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            a.plot_date(timeDates, altList,
-                        linestyle='-',
-                        color=ALTITUDE_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
-        if (GraphParam == "Pressure"):
-            a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
-            a.clear()
-            title = "Pressure Plot"
-            a.set_xlabel('Time')
-            a.set_title(title, color=PRESSURE_COLOR)
-            a.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            a.plot_date(timeDates, pressList,
-                        linestyle='-',
-                        color=PRESSURE_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
-        if (GraphParam == "Speed"):
-            a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
-            a.clear()
-            title = "Speed Plot"
-            a.set_xlabel('Time')
-            a.set_title(title, color=SPEED_COLOR)
-            a.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            a.plot_date(timeDates, spdList,
-                        linestyle='-',
-                        color=SPEED_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
-        if (GraphParam == "Temperature"):
-            a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
-            a.clear()
-            title = "Temperature Plot"
-            a.set_xlabel('Time')
-            a.set_title(title, color=TEMPERATURE_COLOR)
-            a.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            a.plot_date(timeDates, tempList,
-                        linestyle='-',
-                        color=TEMPERATURE_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
-        if (GraphParam == "Voltage"):
-            a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
-            a.clear()
-            title = "Voltage Plot"
-            a.set_xlabel('Time')
-            a.set_title(title, color=VOLTAGE_COLOR)
-            a.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            a.plot_date(timeDates, voltList,
-                        linestyle='-',
-                        color=VOLTAGE_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
-        if (GraphParam == "GPS Speed"):
-            a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
-            a.clear()
-            title = "GPS Speed Plot"
-            a.set_xlabel('Time')
-            a.set_title(title, color=GPSSPD_COLOR)
-            a.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            a.plot_date(timeDates, gpsspdList,
-                        linestyle='-',
-                        color=GPSSPD_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
+            if (GraphParam == "Altitude"):
+	        ViewPlot(a, timeDates, altList, dateindex, title="Altitude", color=ALTITUDE_COLOR)
+            if (GraphParam == "Pressure"):
+                ViewPlot(a, timeDates, pressList, dateindex, title="Pressure", color=PRESSURE_COLOR)   
+            if (GraphParam == "Speed"):
+                ViewPlot(a, timeDates, spdList, dateindex, title="Speed", color=SPEED_COLOR) 
+            if (GraphParam == "Temperature"):
+                ViewPlot(a, timeDates, tempList, dateindex, title="Temperature", color=TEMPERATURE_COLOR)
+            if (GraphParam == "Voltage"):
+		ViewPlot(a, timeDates, voltList, dateindex, title="Voltage", color=VOLTAGE_COLOR)
+            if (GraphParam == "GPS Speed"):
+                ViewPlot(a, timeDates, gpsspdList, dateindex, title="GPS Speed", color=GPSSPD_COLOR) 
 
         if (GraphParam == "All"):
             a = plt.subplot2grid((4, 6), (0, 0), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            a.clear()
-            a.set_xlabel('Time')
-            a.set_title("Altitude", color=ALTITUDE_COLOR)
-            a.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            a.tick_params(axis='both', which='major', labelsize=8)
-            a.plot_date(timeDates, altList,
-                        linestyle='-',
-                        color=ALTITUDE_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
+	    ViewPlot(a, timeDates, altList, dateindex, title="Altitude", color=ALTITUDE_COLOR)
             p = plt.subplot2grid((4, 6), (0, 2), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            p.clear()
-            p.set_xlabel('Time')
-            p.set_title("Pressure", color=PRESSURE_COLOR)
-            p.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            p.tick_params(axis='both', which='major', labelsize=8)
-            p.plot_date(timeDates, pressList,
-                        linestyle='-',
-                        color=PRESSURE_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
-            s = plt.subplot2grid((4, 6), (0, 4), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            s.clear()
-            s.set_xlabel('Time')
-            s.set_title("Speed", color=SPEED_COLOR)
-            s.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            s.tick_params(axis='both', which='major', labelsize=8)
-            s.plot_date(timeDates, spdList,
-                        linestyle='-',
-                        color=SPEED_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
-            t = plt.subplot2grid((4, 6), (2, 0), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            t.clear()
-            t.set_xlabel('Time')
-            t.set_title("Temperature", color=TEMPERATURE_COLOR)
-            t.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            t.tick_params(axis='both', which='major', labelsize=8)
-            t.plot_date(timeDates, tempList,
-                        linestyle='-',
-                        color=TEMPERATURE_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
-            v = plt.subplot2grid((4, 6), (2, 2), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            v.clear()
-            v.set_xlabel('Time')
-            v.set_title("Voltage", color=VOLTAGE_COLOR)
-            v.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            v.tick_params(axis='both', which='major', labelsize=8)
-            v.plot_date(timeDates, voltList,
-                        linestyle='-',
-                        color=VOLTAGE_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-            g = plt.subplot2grid((4, 6), (2, 4), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            g.clear()
-            g.set_xlabel('Time')
-            g.set_title("GPS Speed", color=GPSSPD_COLOR)
-            g.xaxis.set_major_formatter(matplotlib.dates.DateFormatter('%I:%M:%S'))
-            g.tick_params(axis='both', which='major', labelsize=8)
-            g.plot_date(timeDates, gpsspdList,
-                        linestyle='-',
-                        color=GPSSPD_COLOR,
-                        marker='.',
-                        alpha=.7,
-                        antialiased=True,
-                        solid_capstyle='round',
-                        solid_joinstyle='bevel')
-            if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
-                plt.xlim(timeDates[dateindex - (NumberOfPoints - 1)], timeDates[dateindex])
-            else:
-                pass
-
+	    ViewPlot(p, timeDates, pressList, dateindex, title="Pressure", color=PRESSURE_COLOR)
+	    s = plt.subplot2grid((4, 6), (0, 4), rowspan=2, colspan=2, axisbg=GRAPH_BG)
+            ViewPlot(s, timeDates, spdList, dateindex, title="Speed", color=SPEED_COLOR)
+	    t = plt.subplot2grid((4, 6), (2, 0), rowspan=2, colspan=2, axisbg=GRAPH_BG)
+	    ViewPlot(t, timeDates, tempList, dateindex, title="Temperature", color=TEMPERATURE_COLOR)
+	    v = plt.subplot2grid((4, 6), (2, 2), rowspan=2, colspan=2, axisbg=GRAPH_BG)
+	    ViewPlot(v, timeDates, voltList, dateindex, title="Voltage", color=VOLTAGE_COLOR)
+	    g = plt.subplot2grid((4, 6), (2, 4), rowspan=2, colspan=2, axisbg=GRAPH_BG)
+	    ViewPlot(g, timeDates, gpsspdList, dateindex, title="GPS Speed", color=GPSSPD_COLOR)
+	    
         plt.tight_layout(pad=3)
 
 
@@ -697,6 +491,31 @@ def LoadPlot(run):
 
     elif (run == "pause"):
         PlotLoad = False
+
+def ViewPlot(PltObj,Dates,Ylist,dateindex,xlabel="Time",title="Plot",timefmt="%I:%M:%S",
+	     linestyle='-',color="#00EE76",marker='.',alpha=.7,
+	     antialiased=True,solid_capstyle='round',solid_joinstyle='bevel'):
+    # This method will plot a trace given the inputed lists and other visual parameters
+    global NumberOfPoints
+    PltObj.clear()
+    Title = title
+    PltObj.set_xlabel(xlabel)
+    PltObj.set_title(Title, color=color)
+
+    PltObj.xaxis.set_major_formatter(matplotlib.dates.DateFormatter(timefmt))
+    PltObj.plot_date(Dates, Ylist,
+                linestyle=linestyle,
+                color=color,
+                marker=marker,
+                alpha=alpha,
+                antialiased=antialiased,
+                solid_capstyle=solid_capstyle,
+                solid_joinstyle=solid_joinstyle)
+    
+    if ((dateindex - (NumberOfPoints - 1)) > 0 and (dateindex - (NumberOfPoints - 1)) < dateindex):
+        plt.xlim(Dates[dateindex - (NumberOfPoints - 1)], Dates[dateindex])
+    else:
+        pass
 
 
 def ControlSerial(run, pop):
