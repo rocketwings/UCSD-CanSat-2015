@@ -107,31 +107,34 @@ void loop() {
       //send data
       last_send = this_send;
       packet_count++;
-      Serial.println("==========DATA==============");
+      Serial.print("12345");
+      Serial.print(",");
       Serial.print(packet_count);
-      Serial.print(",\t");
-      Serial.print(data[pos].time);
-      Serial.print(",\t");
-      Serial.print(data[pos].pressure);
-      Serial.print(",\t");
+      Serial.print(",");
       Serial.print(data[pos].altitude);
-      Serial.print(",\t");
+      Serial.print(",");
+      Serial.print(data[pos].pressure);
+      Serial.print(",");
+      Serial.print(data[pos].airspeed);
+      Serial.print(",");
       Serial.print(data[pos].temp);
-      Serial.print(",\t");
-      Serial.print(data[pos].gyro_x);
-      Serial.print(",\t");
-      Serial.print(data[pos].gyro_y);
-      Serial.print(",\t");
-      Serial.print(data[pos].gyro_z);
-      Serial.print(",\t");
-      Serial.print(data[pos].compass_ax);
-      Serial.print(",\t");
-      Serial.print(data[pos].compass_ay);
-      Serial.print(",\t");
-      Serial.print(data[pos].compass_az);
-      Serial.print(",\t");
-
-
+      Serial.print(",");
+      Serial.print("5.6");
+      Serial.print(",");
+      Serial.print("89");
+      Serial.print(",");
+      Serial.print("98");
+      Serial.print(",");
+      Serial.print("21");
+      Serial.print(",");
+      Serial.print("5");
+      Serial.print(",");
+      Serial.print("6");
+      Serial.print(",");
+      Serial.print("2");
+      Serial.print(",");
+      Serial.print(data[pos].time);
+      Serial.print(",");
       Serial.println();
     }
   }
