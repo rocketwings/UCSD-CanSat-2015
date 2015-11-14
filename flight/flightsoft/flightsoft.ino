@@ -97,7 +97,7 @@ void loop() {
   data[pos].airspeed = sqrt(2000.*(pitotRead/(0.2*1024.0)-0.5)/1.225);
 
   pos++;
-  if(pos > 9)  {
+  if(pos >= DATA_LENGTH)  {
     pos = 0;
   }
   //send data
