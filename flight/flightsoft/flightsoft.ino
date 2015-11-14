@@ -9,11 +9,15 @@
 #define BAUD 9600
 #define TIME_TOL  1.  //time tolerance in percent
 #define SEND_PER  1000  //send period in milliseconds
+#define DATA_LENGTH 10  //length of data array
+#define AVG_LENGTH  10  //length of avg array
+#define PITOT_PIN 0 //analog pin for pitot tube
 
 unsigned long last_send = 0;
 unsigned long this_send = 0;
 int pos = 0;
 int packet_count = 0;
+int pitotRead = 0;
 
 L3G gyro;
 LPS ps;
@@ -38,8 +42,8 @@ typedef struct Packet {
   float compass_mz;
 } Packet_t;
 
-Packet_t data[10];
-Packet_t avg[10];
+Packet_t data[DATA_LENGTH];
+Packet_t avg[AVG_LENGTH];
 
 void setup() {
   // initialize serial communication at BAUD bits per second:
@@ -54,15 +58,15 @@ void setup() {
   if (!gyro.init()) {
     Serial.println("Failed to autodetect gyro!");
   }
-    Serial.println("2");
+  Serial.println("2");
   if (!compass.init()) {
     Serial.println("Failed to autodetect compass!");
   }
-    Serial.println("3");
+  Serial.println("3");
   gyro.enableDefault();
   ps.enableDefault();
   compass.enableDefault();
-    Serial.println("lkdsfoijewaflkjfds2");
+  Serial.println("lkdsfoijewaflkjfds2");
 
 }
 
@@ -89,6 +93,9 @@ void loop() {
   data[pos].compass_mx = compass.m.x;
   data[pos].compass_my = compass.m.y;
   data[pos].compass_mz = compass.m.z;
+  pitotRead = analogRead(PITOT_PIN);
+  data[pos].airspeed = sqrt(2000.*(pitotRead/(0.2*1024.0)-0.5)/1.225);
+
   pos++;
   if(pos > 9)  {
     pos = 0;
