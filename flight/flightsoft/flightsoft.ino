@@ -8,10 +8,11 @@
 
 #define BAUD 9600
 #define TIME_TOL  1.  //time tolerance in percent
-#define SEND_PER  1000  //send period in milliseconds
+#define SEND_PER  100  //send period in milliseconds
 #define DATA_LENGTH 10  //length of data array
 #define AVG_LENGTH  10  //length of avg array
 #define PITOT_PIN 0 //analog pin for pitot tube
+#define PITOT_CAL 19  //calibration for the zero point of the differential pressure
 
 unsigned long last_send = 0;
 unsigned long this_send = 0;
@@ -94,7 +95,8 @@ void loop() {
   data[pos].compass_my = compass.m.y;
   data[pos].compass_mz = compass.m.z;
   pitotRead = analogRead(PITOT_PIN);
-  data[pos].airspeed = sqrt(2000.*(pitotRead/(0.2*1024.0)-0.5)/1.225);
+//  Serial.println(pitotRead);
+  data[pos].airspeed = sqrt(2000.*(((pitotRead-PITOT_CAL)/(0.2*1024.0))-2.5)/1.225);
 
   pos++;
   if(pos >= DATA_LENGTH)  {
