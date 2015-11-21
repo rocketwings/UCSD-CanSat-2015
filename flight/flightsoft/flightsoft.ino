@@ -6,12 +6,19 @@
 
 #include <math.h>
 
+#include <SPI.h> //needed for SD card reader
+#include <SD.h> // SD library
+
+#include "defStructs.h"
+
 #define BAUD 9600
 #define TIME_TOL  1.  //time tolerance in percent
 #define SEND_PER  1000  //send period in milliseconds
 #define DATA_LENGTH 10  //length of data array
 #define AVG_LENGTH  10  //length of avg array
 #define PITOT_PIN 0 //analog pin for pitot tube
+#define CHIP_SELECT 18 //CS pin for SD card reader MUST be set as OUTPUT
+#define TEAM_ID "123456"
 
 unsigned long last_send = 0;
 unsigned long this_send = 0;
@@ -24,23 +31,7 @@ LPS ps;
 LSM303 compass;
 SoftwareSerial Xbee(8,15);  // RX, TX
 
-typedef struct Packet {
-  long time;
-  float pressure;
-  float altitude;
-  float temp;
-  float voltage;
-  float airspeed;
-  float gyro_x;
-  float gyro_y;
-  float gyro_z;
-  float compass_ax;
-  float compass_ay;
-  float compass_az;
-  float compass_mx;
-  float compass_my;
-  float compass_mz;
-} Packet_t;
+float gps[5] = {1, 1, 1, 1, 1};
 
 Packet_t data[DATA_LENGTH];
 Packet_t avg[AVG_LENGTH];
@@ -67,8 +58,20 @@ void setup() {
   ps.enableDefault();
   compass.enableDefault();
   Serial.println("lkdsfoijewaflkjfds2");
+  
+  Serial.print("SD card setup...");
+  pinMode(CHIP_SELECT, OUTPUT); // set CP as output
+  if(SD.begin(CHIP_SELECT))
+  {
+    Serial.println("Card Initialization Failure!");
+  }
+  Serial.println("Card Ready!");
 
 }
+
+
+
+
 
 // the loop routine runs over and over again forever:
 void loop() {
@@ -133,9 +136,58 @@ void loop() {
 
 
       Serial.println();
+      logData(pos,1,1,1,1,gps);
+      
     }
   }
   else  {
     delay(1);        // delay in between reads for stability
   }
+  
+  
 }
+void logData(int index, int packetCount, int commandTime, int commandCount, int bonus, float gpsData[])
+{
+   File logFile = SD.open("telemetry.txt", FILE_WRITE);
+   if(logFile)
+   {
+     logFile.print(TEAM_ID); //team ID
+     logFile.print(",");
+     logFile.print(packet_count); 
+     logFile.print(",");
+     logFile.print(data[index].altitude);
+     logFile.print(",");
+     logFile.print(data[index].pressure);
+     logFile.print(",");
+     logFile.print(data[index].airspeed);
+     logFile.print(",");
+     logFile.print(data[index].temp);
+     logFile.print(",");
+     logFile.print(data[index].voltage);
+     logFile.print(",");
+     logFile.print(gpsData[0]); //latitude
+     logFile.print(",");
+     logFile.print(gpsData[1]);//longitude
+     logFile.print(",");
+     logFile.print(gpsData[2]);//a ltitude
+     logFile.print(",");
+     logFile.print(gpsData[3]);// sat num
+     logFile.print(",");
+     logFile.print(gpsData[4]);// gps speed
+     logFile.print(",");
+     logFile.print(data[index].time);// time
+     logFile.print(",");
+     logFile.print(commandTime);// time of last imaging command
+     logFile.print(",");
+     logFile.print(commandCount);// number of imaging commands
+     logFile.print(",");
+     logFile.println(bonus); //bonus data if applicable
+     logFile.close();
+   }
+   else Serial.println("Error opening file! NOOOOO!!!!!!");
+   return;
+}
+
+
+
+
