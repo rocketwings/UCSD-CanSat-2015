@@ -13,12 +13,16 @@
 
 #define BAUD 9600
 #define TIME_TOL  1.  //time tolerance in percent
-#define SEND_PER  1000  //send period in milliseconds
+#define SEND_PER  100  //send period in milliseconds
 #define DATA_LENGTH 10  //length of data array
 #define AVG_LENGTH  10  //length of avg array
 #define PITOT_PIN 0 //analog pin for pitot tube
+
 #define CHIP_SELECT 18 //CS pin for SD card reader MUST be set as OUTPUT
 #define TEAM_ID "123456"
+
+#define PITOT_CAL 19  //calibration for the zero point of the differential pressure
+
 
 unsigned long last_send = 0;
 unsigned long this_send = 0;
@@ -97,7 +101,8 @@ void loop() {
   data[pos].compass_my = compass.m.y;
   data[pos].compass_mz = compass.m.z;
   pitotRead = analogRead(PITOT_PIN);
-  data[pos].airspeed = sqrt(2000.*(pitotRead/(0.2*1024.0)-0.5)/1.225);
+//  Serial.println(pitotRead);
+  data[pos].airspeed = sqrt(2000.*(((pitotRead-PITOT_CAL)/(0.2*1024.0))-2.5)/1.225);
 
   pos++;
   if(pos >= DATA_LENGTH)  {
@@ -110,31 +115,34 @@ void loop() {
       //send data
       last_send = this_send;
       packet_count++;
-      Serial.println("==========DATA==============");
+      Serial.print("12345");
+      Serial.print(",");
       Serial.print(packet_count);
-      Serial.print(",\t");
-      Serial.print(data[pos].time);
-      Serial.print(",\t");
-      Serial.print(data[pos].pressure);
-      Serial.print(",\t");
+      Serial.print(",");
       Serial.print(data[pos].altitude);
-      Serial.print(",\t");
+      Serial.print(",");
+      Serial.print(data[pos].pressure);
+      Serial.print(",");
+      Serial.print(data[pos].airspeed);
+      Serial.print(",");
       Serial.print(data[pos].temp);
-      Serial.print(",\t");
-      Serial.print(data[pos].gyro_x);
-      Serial.print(",\t");
-      Serial.print(data[pos].gyro_y);
-      Serial.print(",\t");
-      Serial.print(data[pos].gyro_z);
-      Serial.print(",\t");
-      Serial.print(data[pos].compass_ax);
-      Serial.print(",\t");
-      Serial.print(data[pos].compass_ay);
-      Serial.print(",\t");
-      Serial.print(data[pos].compass_az);
-      Serial.print(",\t");
-
-
+      Serial.print(",");
+      Serial.print("5.6");
+      Serial.print(",");
+      Serial.print("89");
+      Serial.print(",");
+      Serial.print("98");
+      Serial.print(",");
+      Serial.print("21");
+      Serial.print(",");
+      Serial.print("5");
+      Serial.print(",");
+      Serial.print("6");
+      Serial.print(",");
+      Serial.print("2");
+      Serial.print(",");
+      Serial.print(data[pos].time);
+      Serial.print(",");
       Serial.println();
       logData(pos,1,1,1,1,gps);
       
