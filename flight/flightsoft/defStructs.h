@@ -17,5 +17,10 @@ typedef struct Packet {
   float compass_mx;
   float compass_my;
   float compass_mz;
+  float latitude;
+  float longitude;
+  float GPSaltitude;
+  float SatNum;
+  float GPSspeed;
 } Packet_t;
 #endif
