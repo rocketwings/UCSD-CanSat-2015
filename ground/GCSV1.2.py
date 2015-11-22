@@ -9,16 +9,17 @@ import ttk
 import time
 import serial
 import matplotlib
-import matplotlib.animation as animation
+matplotlib.use("TkAgg")
+#import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
-from matplotlib import style
+#from matplotlib import style
 from matplotlib import pyplot as plt
 from matplotlib import dates
 import Queue
-import threading
+#import threading
 from time import sleep
 import sys
-import tkMessageBox
+#import tkMessageBox
 
 # from matplotlib.figure import Figure
 # from Tkinter import ttk
@@ -51,7 +52,7 @@ LogName = "testdata3.txt"
 
 NumberOfPoints = 20
 
-matplotlib.use("TkAgg")
+
 plt.style.use("ggplot")
 f = plt.figure(facecolor=BACKGROUND_COLOR)
 # a = f.add_subplot(111)
