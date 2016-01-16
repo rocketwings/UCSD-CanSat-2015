@@ -16,7 +16,7 @@
 #define SEND_PER  100  //send period in milliseconds
 #define DATA_LENGTH 10  //length of data array
 #define AVG_LENGTH  10  //length of avg array
-#define PITOT_PIN 0 //analog pin for pitot tube
+#define PITOT_PIN 10 //analog pin for pitot tube
 
 #define CHIP_SELECT 18 //CS pin for SD card reader MUST be set as OUTPUT
 #define TEAM_ID "123456"
@@ -35,7 +35,7 @@ LPS ps;
 LSM303 compass;
 SoftwareSerial Xbee(8,15);  // RX, TX
 
-float gps[5] = {1, 1, 1, 1, 1};
+float FakeGPS[5] = {1, 1, 1, 1, 1};
 
 Packet_t data[DATA_LENGTH];
 Packet_t avg[AVG_LENGTH];
@@ -43,8 +43,8 @@ Packet_t avg[AVG_LENGTH];
 void setup() {
   // initialize serial communication at BAUD bits per second:
   Serial.begin(BAUD);
-  Wire.begin();
   Serial.println("lkdsfoijewaflkjfds");
+  Wire.begin();
 
   if (!ps.init()) {
     Serial.println("Failed to autodetect pressure sensor!");
@@ -144,7 +144,7 @@ void loop() {
       Serial.print(data[pos].time);
       Serial.print(",");
       Serial.println();
-      logData(pos,1,1,1,1,gps);
+      logData(pos,1,1,1,1,FakeGPS);
       
     }
   }
