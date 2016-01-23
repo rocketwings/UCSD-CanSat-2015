@@ -15,13 +15,13 @@
 #define TIME_TOL  1.  //time tolerance in percent
 #define SEND_PER  100  //send period in milliseconds
 #define DATA_LENGTH 10  //length of data array
-#define AVG_LENGTH  10  //length of avg array
-#define PITOT_PIN 0 //analog pin for pitot tube
+#define AVG_LENGTH 10  //length of avg array
+#define PITOT_PIN 20//analog pin for pitot tube
 
-#define CHIP_SELECT 18 //CS pin for SD card reader MUST be set as OUTPUT
+#define CHIP_SELECT 10 //CS pin for SD card reader MUST be set as OUTPUT
 #define TEAM_ID "123456"
 
-#define PITOT_CAL 19  //calibration for the zero point of the differential pressure
+#define PITOT_CAL 21  //calibration for the zero point of the differential pressure
 
 
 unsigned long last_send = 0;
@@ -33,18 +33,33 @@ int pitotRead = 0;
 L3G gyro;
 LPS ps;
 LSM303 compass;
-SoftwareSerial Xbee(8,15);  // RX, TX
+//SoftwareSerial Xbee(8,15);  // RX, TX
 
-float gps[5] = {1, 1, 1, 1, 1};
+float FakeGPS[5] = {1, 1, 1, 1, 1};
 
 Packet_t data[DATA_LENGTH];
 Packet_t avg[AVG_LENGTH];
 
 void setup() {
   // initialize serial communication at BAUD bits per second:
+  //delay(3000);
   Serial.begin(BAUD);
-  Wire.begin();
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for Leonardo only
+  }
+  Serial.print("SD card setup...");
+  pinMode(CHIP_SELECT, OUTPUT); // set CP as output
+  if(!SD.begin(CHIP_SELECT))
+  {
+    Serial.println("Card Initialization Failure!");
+    while(1);
+  }
+  else
+  {
+    Serial.println("Card Ready!");
+  }
   Serial.println("lkdsfoijewaflkjfds");
+  Wire.begin();
 
   if (!ps.init()) {
     Serial.println("Failed to autodetect pressure sensor!");
@@ -63,14 +78,8 @@ void setup() {
   compass.enableDefault();
   Serial.println("lkdsfoijewaflkjfds2");
   
-  Serial.print("SD card setup...");
-  pinMode(CHIP_SELECT, OUTPUT); // set CP as output
-  if(SD.begin(CHIP_SELECT))
-  {
-    Serial.println("Card Initialization Failure!");
-  }
-  Serial.println("Card Ready!");
-
+  
+  //while(1);
 }
 
 
@@ -79,6 +88,9 @@ void setup() {
 
 // the loop routine runs over and over again forever:
 void loop() {
+  
+      
+  //Serial.println("Winson Smells");
   // read the input on analog pin 0:
   // int sensorValue = analogRead(A0);
   // print out the value you read:
@@ -111,7 +123,7 @@ void loop() {
   //send data
   this_send = millis();
   if (this_send - last_send > .5*SEND_PER)  {
-    if (this_send%1000 < TIME_TOL*SEND_PER/100. || this_send%1000 > (100-TIME_TOL)*SEND_PER/100)  {
+    if (this_send%1000 < TIME_TOL*SEND_PER/100. || this_send%1000 > (100-TIME_TOL)*SEND_PER/100)  {  
       //send data
       last_send = this_send;
       packet_count++;
@@ -144,8 +156,9 @@ void loop() {
       Serial.print(data[pos].time);
       Serial.print(",");
       Serial.println();
-      logData(pos,1,1,1,1,gps);
+      //Serial.println(data[pos].airspeed);
       
+      logData(pos,1,1,1,1,FakeGPS);
     }
   }
   else  {
