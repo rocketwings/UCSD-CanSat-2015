@@ -3,9 +3,7 @@
 #include <LPS.h>
 #include <L3G.h>
 #include <SoftwareSerial.h>
-
 #include <math.h>
-
 #include <SPI.h> //needed for SD card reader
 #include <SD.h> // SD library
 
@@ -16,12 +14,14 @@
 #define SEND_PER  1000  //send period in milliseconds
 #define DATA_LENGTH 20  //length of data array
 #define AVG_LENGTH 20  //length of avg array
-#define PITOT_PIN 20//analog pin for pitot tube
+#define L_CUSHION 4 // left cushion for averaging around central pos
+#define R_CUSHION 4 // right cushion for averaging around central pos
 
 #define CHIP_SELECT 10 //CS pin for SD card reader MUST be set as OUTPUT
-#define TEAM_ID "123456"
-
+#define PITOT_PIN 20//analog pin for pitot tube
 #define PITOT_CAL 21  //calibration for the zero point of the differential pressure
+
+#define TEAM_ID "123456" // Team ID REMEMBER TO CHANGE THIS TOO LAZY TO LOOK UP
 
 
 unsigned long last_send = 0;
@@ -39,7 +39,7 @@ float FakeGPS[5] = {1, 1, 1, 1, 1};
 float gpsData[5] = {-1, -1, -1, -1, -1};
 
 Packet_t data[DATA_LENGTH];
-Avg_t avg[AVG_LENGTH] = {0};
+Avg_t avg[AVG_LENGTH] = {{0}};
 
 void setup() {
   // initialize serial communication at BAUD bits per second:
@@ -93,7 +93,7 @@ void loop() {
   // Serial.println(sensorValue);
 	
   getData(pos);
-	avgGenerator(pos);
+	
   freqLimiter(pos);
 
   pos++;
@@ -115,13 +115,13 @@ void logData(int pos)
 			logFile.print(",");
 			logFile.print(packet_count); 
 			logFile.print(",");
-			logFile.print(data[pos].altitude);
+			logFile.print(avg[pos].altitude);
 			logFile.print(",");
-			logFile.print(data[pos].pressure);
+			logFile.print(avg[pos].pressure);
 			logFile.print(",");
-			logFile.print(data[pos].airspeed);
+			logFile.print(avg[pos].airspeed);
 			logFile.print(",");
-			logFile.print(data[pos].temp);
+			logFile.print(avg[pos].temp);
 			logFile.print(",");
 			logFile.print(data[pos].voltage);
 			logFile.print(",");
@@ -183,13 +183,13 @@ void serialMonitor(int pos){
 	Serial.print(",");
 	Serial.print(packet_count); 
 	Serial.print(",");
-	Serial.print(data[pos].altitude);
+	Serial.print(avg[pos].altitude);
 	Serial.print(",");
-	Serial.print(data[pos].pressure);
+	Serial.print(avg[pos].pressure);
 	Serial.print(",");
-	Serial.print(data[pos].airspeed);
+	Serial.print(avg[pos].airspeed);
 	Serial.print(",");
-	Serial.print(data[pos].temp);
+	Serial.print(avg[pos].temp);
 	Serial.print(",");
 	Serial.print(data[pos].voltage);
 	Serial.print(",");
@@ -217,13 +217,13 @@ void xbeeSend(int pos){
 	Xbee.print(",");
 	Xbee.print(packet_count); 
 	Xbee.print(",");
-	Xbee.print(data[pos].altitude);
+	Xbee.print(avg[pos].altitude);
 	Xbee.print(",");
-	Xbee.print(data[pos].pressure);
+	Xbee.print(avg[pos].pressure);
 	Xbee.print(",");
-	Xbee.print(data[pos].airspeed);
+	Xbee.print(avg[pos].airspeed);
 	Xbee.print(",");
-	Xbee.print(data[pos].temp);
+	Xbee.print(avg[pos].temp);
 	Xbee.print(",");
 	Xbee.print(data[pos].voltage);
 	Xbee.print(",");
@@ -252,9 +252,10 @@ void freqLimiter(int pos){
     if (this_send%1000 < TIME_TOL*SEND_PER/100. || this_send%1000 > (100-TIME_TOL)*SEND_PER/100)  {
 			last_send = this_send;
       packet_count++;
-			serialMonitor(pos);
-			xbeeSend(pos);
+			avgGenerator(pos);
 			logData(pos);		
+			xbeeSend(pos);
+			serialMonitor(pos);
 		}
 	}
 	else  {
@@ -263,8 +264,8 @@ void freqLimiter(int pos){
 }
 
 avgGenerator(pos){
-	int leftIdx
-	int rightIdx
+	int leftIdx;
+	int rightIdx;
 	if(pos - L_CUSHION >= 0){
 		leftIdx = pos - L_CUSHION;
 	}
@@ -279,15 +280,15 @@ avgGenerator(pos){
 	}
 	
 	for(int i = leftIdx, i < rightIdx, i++){
-		avg[pos].pressure += data[i].pressure
-		avg[pos].temp += data[i].temp
-		avg[pos].altitude += data[i].altitude
-		avg[pos].speed += data[i].speed
+		avg[pos].pressure += data[i].pressure;
+		avg[pos].temp += data[i].temp;
+		avg[pos].altitude += data[i].altitude;
+		avg[pos].airspeed += data[i].airspeed;
 	}
 	avg[pos].pressure = avg[pos].pressure / (rightIdx - leftIdx + 1);
 	avg[pos].temp = avg[pos].temp / (rightIdx - leftIdx + 1);
 	avg[pos].altitude = avg[pos].altitude / (rightIdx - leftIdx + 1);
-	avg[pos].speed = avg[pos].speed / (rightIdx - leftIdx + 1);	
+	avg[pos].airspeed = avg[pos].airspeed / (rightIdx - leftIdx + 1);	
 }
 
 
