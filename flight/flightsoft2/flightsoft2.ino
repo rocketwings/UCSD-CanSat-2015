@@ -14,8 +14,8 @@
 #define SEND_PER  1000  //send period in milliseconds
 #define DATA_LENGTH 20  //length of data array
 #define AVG_LENGTH 20  //length of avg array
-#define L_CUSHION 4 // left cushion for averaging around central pos
-#define R_CUSHION 4 // right cushion for averaging around central pos
+#define L_CUSHION 9 // left cushion for averaging. if 9, takes average of 10 values to left including pos.
+#define R_CUSHION 0 //disregard this for now. leave it 0.
 
 #define CHIP_SELECT 10 //CS pin for SD card reader MUST be set as OUTPUT
 #define PITOT_PIN 20//analog pin for pitot tube
@@ -46,6 +46,7 @@ L3G gyro;
 LPS ps;
 LSM303 compass;
 //SoftwareSerial Xbee(8,15);  // RX, TX
+SoftwareSerial Bridge(8,15); //Rx, Tx this will be the serial bridge between the two microcontrollers
 
 float FakeGPS[5] = {1, 1, 1, 1, 1};
 float gpsData[5] = {-1, -1, -1, -1, -1};
@@ -53,13 +54,18 @@ float gpsData[5] = {-1, -1, -1, -1, -1};
 Packet_t data[DATA_LENGTH];
 Avg_t avg[DATA_LENGTH] = {0};
 
+//------------------------------------------------
+// setup runs once
+//------------------------------------------------
+
 void setup() {
   // initialize serial communication at BAUD bits per second:
   //delay(3000);
   Serial.begin(BAUD);
   while (!Serial) {
-    ; // wait for serial port to connect. Needed for Leonardo only
+    // wait for serial port to connect. Needed for Leonardo only
   }
+	
   Serial.print("SD card setup...");
   pinMode(CHIP_SELECT, OUTPUT); // set CP as output
   if(!SD.begin(CHIP_SELECT))
@@ -71,6 +77,7 @@ void setup() {
   {
     Serial.println("Card Ready!");
   }
+	
   Serial.println("lkdsfoijewaflkjfds");
   Wire.begin();
 
@@ -95,14 +102,11 @@ void setup() {
   //while(1);
 }
 
-
+//----------------------------------------------------
 // the loop routine runs over and over again forever:
+//----------------------------------------------------
+
 void loop() {        
-  //Serial.println("Winson Smells");
-  // read the input on analog pin 0:
-  // int sensorValue = analogRead(A0);
-  // print out the value you read:
-  // Serial.println(sensorValue);
 	
   getData(pos);
 	
@@ -192,7 +196,8 @@ void getData(int pos){
 	data[pos].longitude = gpsData[];
 	data[pos].gpsalt = gpsData[];
 	data[pos].satnum = gpsData[];
-	data[pos].gpsspeed = gpsData[];	
+	data[pos].gpsspeed = gpsData[];
+	//put rest of gps code here
 }
 
 void serialMonitor(int pos){
@@ -229,38 +234,38 @@ void serialMonitor(int pos){
 	Serial.println(data[pos].bonus);
 }
 
-void xbeeSend(int pos){
-	Xbee.print(TEAM_ID); //team ID
-	Xbee.print(",");
-	Xbee.print(packet_count); 
-	Xbee.print(",");
-	Xbee.print(avg[pos].altitude);
-	Xbee.print(",");
-	Xbee.print(avg[pos].pressure);
-	Xbee.print(",");
-	Xbee.print(avg[pos].airspeed);
-	Xbee.print(",");
-	Xbee.print(avg[pos].temp);
-	Xbee.print(",");
-	Xbee.print(data[pos].voltage);
-	Xbee.print(",");
-	Xbee.print(data[pos].latitude); //latitude
-	Xbee.print(",");
-	Xbee.print(data[pos].longitude);//longitude
-	Xbee.print(",");
-	Xbee.print(data[pos].altitude);//altitude
-	Xbee.print(",");
-	Xbee.print(data[pos].satnum);// sat num
-	Xbee.print(",");
-	Xbee.print(data[pos].gpsspeed);// gps speed
-	Xbee.print(",");
-	Xbee.print(data[pos].time);// time
-	Xbee.print(",");
-	Xbee.print(data[pos].imgcmdTime);// time of last imaging command
-	Xbee.print(",");
-	Xbee.print(data[pos].imgcmdCount);// number of imaging commands
-	Xbee.print(",");
-	Xbee.println(data[pos].bonus);
+void bridgeSend(int pos){
+	Bridge.print(TEAM_ID); //team ID
+	Bridge.print(",");
+	Bridge.print(packet_count); 
+	Bridge.print(",");
+	Bridge.print(avg[pos].altitude);
+	Bridge.print(",");
+	Bridge.print(avg[pos].pressure);
+	Bridge.print(",");
+	Bridge.print(avg[pos].airspeed);
+	Bridge.print(",");
+	Bridge.print(avg[pos].temp);
+	Bridge.print(",");
+	Bridge.print(data[pos].voltage);
+	Bridge.print(",");
+	Bridge.print(data[pos].latitude); //latitude
+	Bridge.print(",");
+	Bridge.print(data[pos].longitude);//longitude
+	Bridge.print(",");
+	Bridge.print(data[pos].altitude);//altitude
+	Bridge.print(",");
+	Bridge.print(data[pos].satnum);// sat num
+	Bridge.print(",");
+	Bridge.print(data[pos].gpsspeed);// gps speed
+	Bridge.print(",");
+	Bridge.print(data[pos].time);// time
+//	Bridge.print(",");
+//	Bridge.print(data[pos].imgcmdTime);// time of last imaging command
+//	Bridge.print(",");
+//	Bridge.print(data[pos].imgcmdCount);// number of imaging commands
+//	Bridge.print(",");
+//	Bridge.println(data[pos].bonus);
 }
 
 void freqLimiter(int pos){
@@ -319,7 +324,7 @@ releaseTrigger(int pos){
 	}
 }
 
-launchIndicator(){
+float launchIndicator(){
 	float slope = 0.0;
 	float sumAlt = 0.0;
 	float sumAlt2 = 0.0;
@@ -340,6 +345,8 @@ launchIndicator(){
 	if (slope >= LAUNCH_VELOCITY){
 		launched = True;
 	}
+	
+	return slope;
 }
 
 stateIni(){
@@ -357,7 +364,3 @@ shiftDataLeft(){
 		data[i] = data[i+1];
 	}
 }
-
-
-
-
