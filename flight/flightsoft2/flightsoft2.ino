@@ -12,10 +12,10 @@
 #include "defStructs.h"
 
 #define BAUD 9600
-#define TIME_TOL  1.  //time tolerance in percent
-#define SEND_PER  100  //send period in milliseconds
+#define TIME_TOL  1  //time tolerance in percent
+#define SEND_PER  1000  //send period in milliseconds
 #define DATA_LENGTH 20  //length of data array
-#define AVG_LENGTH 10  //length of avg array
+#define AVG_LENGTH 20  //length of avg array
 #define PITOT_PIN 20//analog pin for pitot tube
 
 #define CHIP_SELECT 10 //CS pin for SD card reader MUST be set as OUTPUT
@@ -39,7 +39,7 @@ float FakeGPS[5] = {1, 1, 1, 1, 1};
 float gpsData[5] = {-1, -1, -1, -1, -1};
 
 Packet_t data[DATA_LENGTH];
-Packet_t avg[AVG_LENGTH];
+Avg_t avg[AVG_LENGTH] = {0};
 
 void setup() {
   // initialize serial communication at BAUD bits per second:
@@ -93,7 +93,7 @@ void loop() {
   // Serial.println(sensorValue);
 	
   getData(pos);
-	
+	avgGenerator(pos);
   freqLimiter(pos);
 
   pos++;
@@ -262,6 +262,32 @@ void freqLimiter(int pos){
   }
 }
 
-avgGenerator()
+avgGenerator(pos){
+	int leftIdx
+	int rightIdx
+	if(pos - L_CUSHION >= 0){
+		leftIdx = pos - L_CUSHION;
+	}
+	else{
+		leftIdx = 0;
+	}
+	if(pos + R_CUSHION <= DATA_LENGTH - 1){
+		rightIdx = pos - R_CUSHION;
+	}
+	else{
+		rightIdx = DATA_LENGTH - 1;
+	}
+	
+	for(int i = leftIdx, i < rightIdx, i++){
+		avg[pos].pressure += data[i].pressure
+		avg[pos].temp += data[i].temp
+		avg[pos].altitude += data[i].altitude
+		avg[pos].speed += data[i].speed
+	}
+	avg[pos].pressure = avg[pos].pressure / (rightIdx - leftIdx + 1);
+	avg[pos].temp = avg[pos].temp / (rightIdx - leftIdx + 1);
+	avg[pos].altitude = avg[pos].altitude / (rightIdx - leftIdx + 1);
+	avg[pos].speed = avg[pos].speed / (rightIdx - leftIdx + 1);	
+}
 
 
