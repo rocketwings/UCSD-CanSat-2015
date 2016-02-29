@@ -21,8 +21,20 @@
 #define PITOT_PIN 20//analog pin for pitot tube
 #define PITOT_CAL 21  //calibration for the zero point of the differential pressure
 
+#define RELEASE_ALTITUDE 400 // altitude set for release of cansat for container in meters
+
 #define TEAM_ID "123456" // Team ID REMEMBER TO CHANGE THIS TOO LAZY TO LOOK UP
 
+//--------------
+// State Params
+//--------------
+//these will need to be preserved in case of processor reset.(save to sd card.)
+boolean launched = false; //boolean for if system has launched
+boolean released = false; //boolean for if cansat is released from container
+boolean reachAlt = false; //boolean for if cansat has reached realease altitude on ascent
+boolean GPSlock = false; //boolean for if cansat has a gps lock
+
+//--------------
 
 unsigned long last_send = 0;
 unsigned long this_send = 0;
@@ -39,7 +51,7 @@ float FakeGPS[5] = {1, 1, 1, 1, 1};
 float gpsData[5] = {-1, -1, -1, -1, -1};
 
 Packet_t data[DATA_LENGTH];
-Avg_t avg[AVG_LENGTH] = {{0}};
+Avg_t avg[DATA_LENGTH] = {0};
 
 void setup() {
   // initialize serial communication at BAUD bits per second:
@@ -97,9 +109,14 @@ void loop() {
   freqLimiter(pos);
 
   pos++;
-  if(pos >= DATA_LENGTH)  {
-    pos = 0;
-  }  
+  if(pos >= DATA_LENGTH){
+    pos = DATA_LENGTH - 1;
+		shiftDataLeft();
+		avgGenerator(pos);
+		shiftAvgLeft(); 
+		launchIndicator();
+  }
+  
 }
 
 //----------------------------------------------------
@@ -144,8 +161,8 @@ void logData(int pos)
 			logFile.println(data[pos].bonus); //bonus data if applicable
 			logFile.close();
    }
-   else Serial.println("Error opening file! NOOOOO!!!!!!");
-   return;
+		else Serial.println("Error opening file! NOOOOO!!!!!!");
+		return;
 }
 
 void getData(int pos){
@@ -252,9 +269,9 @@ void freqLimiter(int pos){
     if (this_send%1000 < TIME_TOL*SEND_PER/100. || this_send%1000 > (100-TIME_TOL)*SEND_PER/100)  {
 			last_send = this_send;
       packet_count++;
-			avgGenerator(pos);
-			logData(pos);		
-			xbeeSend(pos);
+			
+			//logData(pos);		
+			//xbeeSend(pos);
 			serialMonitor(pos);
 		}
 	}
@@ -279,7 +296,7 @@ avgGenerator(pos){
 		rightIdx = DATA_LENGTH - 1;
 	}
 	
-	for(int i = leftIdx, i < rightIdx, i++){
+	for(int i = leftIdx; i < rightIdx; i++){
 		avg[pos].pressure += data[i].pressure;
 		avg[pos].temp += data[i].temp;
 		avg[pos].altitude += data[i].altitude;
@@ -290,5 +307,57 @@ avgGenerator(pos){
 	avg[pos].altitude = avg[pos].altitude / (rightIdx - leftIdx + 1);
 	avg[pos].airspeed = avg[pos].airspeed / (rightIdx - leftIdx + 1);	
 }
+
+releaseTrigger(int pos){
+	if(avg[pos].altitude >= RELEASE_ALTITUDE){
+		reachAlt = true;
+	}
+	if(launched && reachAlt){
+		if(avg[pos].altitude <= RELEASE_ALTITUDE){
+			// Release code analogWrite(LED_PIN, 127);
+		}
+	}
+}
+
+launchIndicator(){
+	float slope = 0.0;
+	float sumAlt = 0.0;
+	float sumAlt2 = 0.0;
+	float sumTime = 0.0;
+	float sumTtime2 = 0.0;
+	float crossSum = 0.0;
+	
+	for(int n=0; n<AVG_LENGTH; n++){
+		sumAlt += avg[n].altitude;
+		sumAlt2 += avg[n].altitude * avg[n].altitude;
+		sumTime += float(data[n].time);
+		sumTtime2 += float(data[n].time * data[n].time);
+		crossSum += float(data[n].time) * avg[n].altitude;
+	}
+	
+	slope = (AVG_LENGTH * crossSum - sumAlt*sumTime)/(AVG_LENGTH * sumTtime2 - sumTime * sumTime);
+	
+	if (slope >= LAUNCH_VELOCITY){
+		launched = True;
+	}
+}
+
+stateIni(){
+	// will set state variables from other arduino. (SD card to serial bridge)
+}
+
+shiftAvgLeft(){
+	for(int i=0; i<AVG_LENGTH - 2; i++){
+		avg[i] = avg[i+1];
+	}
+}
+
+shiftDataLeft(){
+	for(int i=0; i<DATA_LENGTH - 2; i++){
+		data[i] = data[i+1];
+	}
+}
+
+
 
 
