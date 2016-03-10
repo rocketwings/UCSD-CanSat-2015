@@ -66,17 +66,7 @@ void setup() {
     // wait for serial port to connect. Needed for Leonardo only
   }
 	
-  Serial.print("SD card setup...");
-  pinMode(CHIP_SELECT, OUTPUT); // set CP as output
-  if(!SD.begin(CHIP_SELECT))
-  {
-    Serial.println("Card Initialization Failure!");
-    while(1);
-  }
-  else
-  {
-    Serial.println("Card Ready!");
-  }
+  
 	
   Serial.println("lkdsfoijewaflkjfds");
   Wire.begin();
@@ -260,12 +250,12 @@ void bridgeSend(int pos){
 	Bridge.print(data[pos].gpsspeed);// gps speed
 	Bridge.print(",");
 	Bridge.print(data[pos].time);// time
-//	Bridge.print(",");
-//	Bridge.print(data[pos].imgcmdTime);// time of last imaging command
-//	Bridge.print(",");
-//	Bridge.print(data[pos].imgcmdCount);// number of imaging commands
-//	Bridge.print(",");
-//	Bridge.println(data[pos].bonus);
+	Bridge.print(",");
+	// State Params
+	Bridge.print(launched);// time of last imaging command
+	Bridge.print(released);// number of imaging commands
+	Bridge.print(reachAlt);
+	Bridge.println(GPSlock);
 }
 
 void freqLimiter(int pos){
