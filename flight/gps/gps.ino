@@ -1,6 +1,6 @@
 #include <SoftwareSerial.h>
 
-SoftwareSerial GPSSerial(10, 11); // RX, TX
+SoftwareSerial GPSSerial(8, 7); // RX, TX
 
 char GPSbuffer[82];
 int i;
@@ -20,7 +20,8 @@ void setup() {
   
 
 void loop() {
-
+  getGPS();
+  
 }
 
 void getGPS()
@@ -36,13 +37,25 @@ void getGPS()
       GPSvals[1] = atof(GPSbuffer + commas[2]+1); //Latitude
       GPSvals[2] = atof(GPSbuffer + commas[4]+1); //Longitude
       GPSvals[3] = atof(GPSbuffer + commas[6]+1); //Knots
+      //Serial.println('poop');
     }
 
     else if(GPSbuffer[0]=='$' && GPSbuffer[4]=='G' && GPSbuffer[5]=='A')
     {
       GPSvals[4] = atof(GPSbuffer + commas[6]+1); //SatNum
       GPSvals[5] = atof(GPSbuffer + commas[8]+1); //Altitude
-    }    
+    }
+    Serial.print(GPSvals[0]);
+    Serial.print(",");
+    Serial.print(GPSvals[1]);
+    Serial.print(",");
+    Serial.print(GPSvals[2]);
+    Serial.print(",");
+    Serial.print(GPSvals[3]);
+    Serial.print(",");
+    Serial.print(GPSvals[4]);
+    Serial.print(",");
+    Serial.println(GPSvals[5]);    
   }
 }
 

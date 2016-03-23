@@ -4,26 +4,26 @@
 #include <L3G.h>
 #include <SoftwareSerial.h>
 #include <math.h>
-#include <SPI.h> //needed for SD card reader
-#include <SD.h> // SD library
 
 #include "defStructs.h"
 
 #define BAUD 9600
 #define TIME_TOL  1  //time tolerance in percent
 #define SEND_PER  1000  //send period in milliseconds
-#define DATA_LENGTH 20  //length of data array
-#define AVG_LENGTH 20  //length of avg array
+#define DATA_LENGTH 15  //length of data array
+#define AVG_LENGTH 15  //length of avg array
 #define L_CUSHION 9 // left cushion for averaging. if 9, takes average of 10 values to left including pos.
 #define R_CUSHION 0 //disregard this for now. leave it 0.
 
 #define CHIP_SELECT 10 //CS pin for SD card reader MUST be set as OUTPUT
 #define PITOT_PIN 20//analog pin for pitot tube
-#define PITOT_CAL 21  //calibration for the zero point of the differential pressure
+#define PITOT_CAL 31  //calibration for the zero point of the differential pressure
 
 #define RELEASE_ALTITUDE 400 // altitude set for release of cansat for container in meters
 
 #define TEAM_ID "123456" // Team ID REMEMBER TO CHANGE THIS TOO LAZY TO LOOK UP
+
+#define LAUNCH_VELOCITY 100
 
 //--------------
 // State Params
@@ -48,7 +48,7 @@ LSM303 compass;
 //SoftwareSerial Xbee(8,15);  // RX, TX
 SoftwareSerial Bridge(8,15); //Rx, Tx this will be the serial bridge between the two microcontrollers
 
-float FakeGPS[5] = {1, 1, 1, 1, 1};
+//float FakeGPS[5] = {1, 1, 1, 1, 1};
 float gpsData[5] = {-1, -1, -1, -1, -1};
 
 Packet_t data[DATA_LENGTH];
@@ -87,6 +87,7 @@ void setup() {
   ps.enableDefault();
   compass.enableDefault();
   Serial.println("lkdsfoijewaflkjfds2");
+  pinMode(PITOT_PIN, INPUT);
   
   
   //while(1);
@@ -99,15 +100,18 @@ void setup() {
 void loop() {        
 	
   getData(pos);
-	
+//	Serial.println(avg[pos].altitude);
+ // Serial.println(data[pos].altitude);
   freqLimiter(pos);
 
   pos++;
   if(pos >= DATA_LENGTH){
     pos = DATA_LENGTH - 1;
+    //Serial.println(pos);
+    avgGenerator(pos);
 		shiftDataLeft();
-		avgGenerator(pos);
 		shiftAvgLeft(); 
+    
 		launchIndicator();
   }
   
@@ -116,7 +120,7 @@ void loop() {
 //----------------------------------------------------
 // functions
 //----------------------------------------------------
-
+/*
 void logData(int pos)
 {
    File logFile = SD.open("telemetry.txt", FILE_WRITE);
@@ -158,7 +162,7 @@ void logData(int pos)
 		else Serial.println("Error opening file! NOOOOO!!!!!!");
 		return;
 }
-
+*/
 void getData(int pos){
 	// read data
   data[pos].time = millis();
@@ -166,28 +170,49 @@ void getData(int pos){
 	data[pos].pressure = ps.readPressureMillibars();
   data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure);
   data[pos].temp = ps.readTemperatureC();
-  gyro.read();
-  data[pos].gyro_x = gyro.g.x;
-  data[pos].gyro_y = gyro.g.y;
-  data[pos].gyro_z = gyro.g.z;
-  compass.read();
-  data[pos].compass_ax = compass.a.x;
-  data[pos].compass_ay = compass.a.y;
-  data[pos].compass_az = compass.a.z;
-  data[pos].compass_mx = compass.m.x;
-  data[pos].compass_my = compass.m.y;
-  data[pos].compass_mz = compass.m.z;
+//  gyro.read();
+//  data[pos].gyro_x = gyro.g.x;
+//  data[pos].gyro_y = gyro.g.y;
+//  data[pos].gyro_z = gyro.g.z;
+//  compass.read();
+//  data[pos].compass_ax = compass.a.x;
+//  data[pos].compass_ay = compass.a.y;
+//  data[pos].compass_az = compass.a.z;
+//  data[pos].compass_mx = compass.m.x;
+//  data[pos].compass_my = compass.m.y;
+//  data[pos].compass_mz = compass.m.z;
   //pitot
 	pitotRead = analogRead(PITOT_PIN);
 	// Serial.println(pitotRead);
   data[pos].airspeed = sqrt(2000.*(((pitotRead-PITOT_CAL)/(0.2*1024.0))-2.5)/1.225);
 	//GPS
-	data[pos].latitude = gpsData[];
-	data[pos].longitude = gpsData[];
-	data[pos].gpsalt = gpsData[];
-	data[pos].satnum = gpsData[];
-	data[pos].gpsspeed = gpsData[];
+	data[pos].latitude = gpsData[0];
+	data[pos].longitude = gpsData[1];
+	data[pos].gpsalt = gpsData[2];
+	data[pos].satnum = gpsData[3];
+	data[pos].gpsspeed = gpsData[4];
 	//put rest of gps code here
+
+ //camera stats
+  if(Bridge.available()){
+    char buff[30]={'\0'};
+    int comma = 0;
+    Bridge.readBytesUntil('\n',buff,30);
+    for(int i=0;i<30;i++){
+      if(buff[i] == ','){
+        comma = i;
+      }
+    }
+    //format: imgcount, cameratime
+    data[pos].imgcmdCount = atoi(buff);
+    data[pos].imgcmdTime = strtoul(buff+comma,NULL,10);
+    
+    
+  }
+
+
+  
+ //
 }
 
 void serialMonitor(int pos){
@@ -268,6 +293,7 @@ void freqLimiter(int pos){
 			//logData(pos);		
 			//xbeeSend(pos);
 			serialMonitor(pos);
+      
 		}
 	}
 	else  {
@@ -275,7 +301,7 @@ void freqLimiter(int pos){
   }
 }
 
-avgGenerator(pos){
+void avgGenerator(int pos){
 	int leftIdx;
 	int rightIdx;
 	if(pos - L_CUSHION >= 0){
@@ -284,26 +310,28 @@ avgGenerator(pos){
 	else{
 		leftIdx = 0;
 	}
+ 
 	if(pos + R_CUSHION <= DATA_LENGTH - 1){
 		rightIdx = pos - R_CUSHION;
 	}
+ 
 	else{
 		rightIdx = DATA_LENGTH - 1;
 	}
 	
-	for(int i = leftIdx; i < rightIdx; i++){
+	for(int i = leftIdx; i <= rightIdx; i++){
 		avg[pos].pressure += data[i].pressure;
 		avg[pos].temp += data[i].temp;
 		avg[pos].altitude += data[i].altitude;
 		avg[pos].airspeed += data[i].airspeed;
 	}
-	avg[pos].pressure = avg[pos].pressure / (rightIdx - leftIdx + 1);
-	avg[pos].temp = avg[pos].temp / (rightIdx - leftIdx + 1);
-	avg[pos].altitude = avg[pos].altitude / (rightIdx - leftIdx + 1);
-	avg[pos].airspeed = avg[pos].airspeed / (rightIdx - leftIdx + 1);	
+	avg[pos].pressure = avg[pos].pressure / (rightIdx - leftIdx+2);
+	avg[pos].temp = avg[pos].temp / (rightIdx - leftIdx+2);
+	avg[pos].altitude = avg[pos].altitude / (rightIdx - leftIdx+2);
+	avg[pos].airspeed = avg[pos].airspeed / (rightIdx - leftIdx)+2;	
 }
 
-releaseTrigger(int pos){
+void releaseTrigger(int pos){
 	if(avg[pos].altitude >= RELEASE_ALTITUDE){
 		reachAlt = true;
 	}
@@ -333,24 +361,25 @@ float launchIndicator(){
 	slope = (AVG_LENGTH * crossSum - sumAlt*sumTime)/(AVG_LENGTH * sumTtime2 - sumTime * sumTime);
 	
 	if (slope >= LAUNCH_VELOCITY){
-		launched = True;
+		launched = true;
 	}
 	
 	return slope;
 }
 
-stateIni(){
+void stateIni(){
 	// will set state variables from other arduino. (SD card to serial bridge)
 }
 
-shiftAvgLeft(){
+void shiftAvgLeft(){
 	for(int i=0; i<AVG_LENGTH - 2; i++){
 		avg[i] = avg[i+1];
 	}
 }
 
-shiftDataLeft(){
+void shiftDataLeft(){
 	for(int i=0; i<DATA_LENGTH - 2; i++){
 		data[i] = data[i+1];
 	}
 }
+
