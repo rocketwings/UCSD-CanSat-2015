@@ -2,7 +2,7 @@
 
 SoftwareSerial GPSSerial(8, 7); // RX, TX
 
-char GPSbuffer[82];
+char GPSbuffer[100] = {'\0'};
 int i;
 int commas[10];
 int j;
@@ -11,7 +11,7 @@ float GPSvals[6];
 void setup() {
   i = 0;//index
   // Open serial communications and wait for port to open:
-  Serial.begin(9600);
+  Serial.begin(115200);
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
@@ -28,7 +28,16 @@ void getGPS()
 {
   if (GPSSerial.available())
   {
-    GPSSerial.readBytesUntil('\n', GPSbuffer, 82);
+    
+    GPSSerial.readBytesUntil('\n', GPSbuffer, 100);
+    for(int k = 0; GPSbuffer[k]<82;k++){
+      Serial.print(GPSbuffer[k]);
+      if(GPSbuffer[k+1]=='\0'){
+        Serial.print("apsdofasdfo\n");
+        break;
+      }
+    }
+    
   
   
     if( GPSbuffer[0]=='$' && GPSbuffer[4]=='M' && GPSbuffer[5]=='C')
@@ -45,6 +54,7 @@ void getGPS()
       GPSvals[4] = atof(GPSbuffer + commas[6]+1); //SatNum
       GPSvals[5] = atof(GPSbuffer + commas[8]+1); //Altitude
     }
+    /*
     Serial.print(GPSvals[0]);
     Serial.print(",");
     Serial.print(GPSvals[1]);
@@ -56,6 +66,8 @@ void getGPS()
     Serial.print(GPSvals[4]);
     Serial.print(",");
     Serial.println(GPSvals[5]);    
+    */
   }
+  
 }
 

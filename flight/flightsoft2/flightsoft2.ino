@@ -4,9 +4,11 @@
 #include <L3G.h>
 #include <SoftwareSerial.h>
 #include <math.h>
+#include <Adafruit_GPS.h>
 
 #include "defStructs.h"
 
+#define GPSECHO  true
 #define BAUD 9600
 #define TIME_TOL  1  //time tolerance in percent
 #define SEND_PER  1000  //send period in milliseconds
@@ -38,6 +40,7 @@ boolean GPSlock = false; //boolean for if cansat has a gps lock
 
 unsigned long last_send = 0;
 unsigned long this_send = 0;
+unsigned long missionTime = 0;
 int pos = 0;
 int packet_count = 0;
 int pitotRead = 0;
@@ -46,14 +49,21 @@ L3G gyro;
 LPS ps;
 LSM303 compass;
 //SoftwareSerial Xbee(8,15);  // RX, TX
-SoftwareSerial Bridge(8,15); //Rx, Tx this will be the serial bridge between the two microcontrollers
+SoftwareSerial Bridge(9,15); //Rx, Tx this will be the serial bridge between the two microcontrollers
+
+SoftwareSerial mySerial(8,7);
+Adafruit_GPS GPS(&mySerial);
+
 
 //float FakeGPS[5] = {1, 1, 1, 1, 1};
-float gpsData[5] = {-1, -1, -1, -1, -1};
+//float gpsData[5] = {-1, -1, -1, -1, -1};
 
 Packet_t data[DATA_LENGTH];
 Avg_t avg[DATA_LENGTH] = {0};
 
+
+boolean usingInterrupt = false;
+void useInterrupt(boolean);
 //------------------------------------------------
 // setup runs once
 //------------------------------------------------
@@ -61,11 +71,17 @@ Avg_t avg[DATA_LENGTH] = {0};
 void setup() {
   // initialize serial communication at BAUD bits per second:
   //delay(3000);
-  Serial.begin(BAUD);
+  Serial.begin(115200);
   while (!Serial) {
     // wait for serial port to connect. Needed for Leonardo only
   }
 	
+	//GPS
+  GPS.begin(9600);
+  GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+  GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+  useInterrupt(true);
+  //-------------
   
 	
   Serial.println("lkdsfoijewaflkjfds");
@@ -165,7 +181,7 @@ void logData(int pos)
 */
 void getData(int pos){
 	// read data
-  data[pos].time = millis();
+  missionTime = millis();
   // pololu
 	data[pos].pressure = ps.readPressureMillibars();
   data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure);
@@ -186,11 +202,30 @@ void getData(int pos){
 	// Serial.println(pitotRead);
   data[pos].airspeed = sqrt(2000.*(((pitotRead-PITOT_CAL)/(0.2*1024.0))-2.5)/1.225);
 	//GPS
-	data[pos].latitude = gpsData[0];
-	data[pos].longitude = gpsData[1];
-	data[pos].gpsalt = gpsData[2];
-	data[pos].satnum = gpsData[3];
-	data[pos].gpsspeed = gpsData[4];
+  if (! usingInterrupt) {
+    // read data from the GPS in the 'main loop'
+    char c = GPS.read();
+    // if you want to debug, this is a good time to do it!
+    if (GPSECHO)
+      if (c) Serial.print(c);
+  }
+  
+  // if a sentence is received, we can check the checksum, parse it...
+  if (GPS.newNMEAreceived()) {
+    // a tricky thing here is if we print the NMEA sentence, or data
+    // we end up not listening and catching other sentences! 
+    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
+    //Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
+  
+    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
+      return;  // we can fail to parse a sentence in which case we should just wait for another
+  }
+  //--------------------------------------------------------------
+	//GPS.latitude = gpsData[0];
+	//GPS.longitude = gpsData[1];
+	//GPS.altitude = gpsData[2];
+	//GPS.satellites = gpsData[3];
+	//GPS.speed = gpsData[4];
 	//put rest of gps code here
 
  //camera stats
@@ -230,17 +265,17 @@ void serialMonitor(int pos){
 	Serial.print(",");
 	Serial.print(data[pos].voltage);
 	Serial.print(",");
-	Serial.print(data[pos].latitude); //latitude
-	Serial.print(",");
-	Serial.print(data[pos].longitude);//longitude
-	Serial.print(",");
-	Serial.print(data[pos].gpsalt);//altitude
-	Serial.print(",");
-	Serial.print(data[pos].satnum);// sat num
-	Serial.print(",");
-	Serial.print(data[pos].gpsspeed);// gps speed
-	Serial.print(",");
-	Serial.print(data[pos].time);// time
+	Serial.print(GPS.latitude); //latitude
+  Serial.print(",");
+  Serial.print(GPS.longitude);//longitude
+  Serial.print(",");
+  Serial.print(GPS.altitude);//altitude
+  Serial.print(",");
+  Serial.print(GPS.satellites);// sat num
+  Serial.print(",");
+  Serial.print(GPS.speed);// gps speed
+  Serial.print(",");
+	Serial.print(missionTime);// time
 	Serial.print(",");
 	Serial.print(data[pos].imgcmdTime);// time of last imaging command
 	Serial.print(",");
@@ -264,17 +299,17 @@ void bridgeSend(int pos){
 	Bridge.print(",");
 	Bridge.print(data[pos].voltage);
 	Bridge.print(",");
-	Bridge.print(data[pos].latitude); //latitude
+	Bridge.print(GPS.latitude); //latitude
 	Bridge.print(",");
-	Bridge.print(data[pos].longitude);//longitude
+	Bridge.print(GPS.longitude);//longitude
 	Bridge.print(",");
-	Bridge.print(data[pos].altitude);//altitude
+	Bridge.print(GPS.altitude);//altitude
 	Bridge.print(",");
-	Bridge.print(data[pos].satnum);// sat num
+	Bridge.print(GPS.satellites);// sat num
 	Bridge.print(",");
-	Bridge.print(data[pos].gpsspeed);// gps speed
+	Bridge.print(GPS.speed);// gps speed
 	Bridge.print(",");
-	Bridge.print(data[pos].time);// time
+	Bridge.print(missionTime);// time
 	Bridge.print(",");
 	// State Params
 	Bridge.print(launched);// time of last imaging command
@@ -353,9 +388,9 @@ float launchIndicator(){
 	for(int n=0; n<AVG_LENGTH; n++){
 		sumAlt += avg[n].altitude;
 		sumAlt2 += avg[n].altitude * avg[n].altitude;
-		sumTime += float(data[n].time);
-		sumTtime2 += float(data[n].time * data[n].time);
-		crossSum += float(data[n].time) * avg[n].altitude;
+		sumTime += float((missionTime/1000));
+		sumTtime2 += float((missionTime/1000) * (missionTime/1000));
+		crossSum += float(missionTime/1000) * avg[n].altitude;
 	}
 	
 	slope = (AVG_LENGTH * crossSum - sumAlt*sumTime)/(AVG_LENGTH * sumTtime2 - sumTime * sumTime);
@@ -383,3 +418,27 @@ void shiftDataLeft(){
 	}
 }
 
+SIGNAL(TIMER0_COMPA_vect) {
+  char c = GPS.read();
+  // if you want to debug, this is a good time to do it!
+#ifdef UDR0
+  if (GPSECHO)
+    if (c) UDR0 = c;  
+    // writing direct to UDR0 is much much faster than Serial.print 
+    // but only one character can be written at a time. 
+#endif
+}
+
+void useInterrupt(boolean v) {
+  if (v) {
+    // Timer0 is already used for millis() - we'll just interrupt somewhere
+    // in the middle and call the "Compare A" function above
+    OCR0A = 0xAF;
+    TIMSK0 |= _BV(OCIE0A);
+    usingInterrupt = true;
+  } else {
+    // do not call the interrupt function COMPA anymore
+    TIMSK0 &= ~_BV(OCIE0A);
+    usingInterrupt = false;
+  }
+}

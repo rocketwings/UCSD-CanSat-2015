@@ -1,15 +1,19 @@
 #include <Adafruit_VC0706.h>
 #include <SPI.h>
 #include <SD.h> // SD library
-#include <SoftwareSerial.h>
 #define CHIPSELECT 10
-SoftwareSerial Camera(4,5); // RX,TX
-Adafruit_VC0706 cam = Adafruit_VC0706(&Camera);
+//SoftwareSerial Camera(7,5); // RX,TX
+Adafruit_VC0706 cam = Adafruit_VC0706(&Serial1);
 void setup() {
   Serial.begin(9600);
-  SD.begin(9600);
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
+  if(!SD.begin(CHIPSELECT)){
+    Serial.println("Card failed, or not present");
+  }
   Serial.println("VC0706 Camera snapshot test");
-  
+  delay(5000);
   //locating the camera
   {
   if (cam.begin()) Serial.println("Camera Found!");
