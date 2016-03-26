@@ -41,6 +41,9 @@ boolean GPSlock = false; //boolean for if cansat has a gps lock
 unsigned long last_send = 0;
 unsigned long this_send = 0;
 unsigned long missionTime = 0;
+int imgCmdCount = 0;
+unsigned long imgCmdTime = 0;
+
 int pos = 0;
 int packet_count = 0;
 int pitotRead = 0;
@@ -228,22 +231,9 @@ void getData(int pos){
 	//GPS.speed = gpsData[4];
 	//put rest of gps code here
 
- //camera stats
-  if(Bridge.available()){
-    char buff[30]={'\0'};
-    int comma = 0;
-    Bridge.readBytesUntil('\n',buff,30);
-    for(int i=0;i<30;i++){
-      if(buff[i] == ','){
-        comma = i;
-      }
-    }
-    //format: imgcount, cameratime
-    data[pos].imgcmdCount = atoi(buff);
-    data[pos].imgcmdTime = strtoul(buff+comma,NULL,10);
-    
-    
-  }
+  //camera and params (params if requested.)
+  getBridge();
+  
 
 
   
@@ -277,9 +267,9 @@ void serialMonitor(int pos){
   Serial.print(",");
 	Serial.print(missionTime);// time
 	Serial.print(",");
-	Serial.print(data[pos].imgcmdTime);// time of last imaging command
+	Serial.print(imgCmdTime);// time of last imaging command
 	Serial.print(",");
-	Serial.print(data[pos].imgcmdCount);// number of imaging commands
+	Serial.print(imgCmdCount);// number of imaging commands
 	Serial.print(",");
 	Serial.println(data[pos].bonus);
 }
@@ -402,9 +392,42 @@ float launchIndicator(){
 	return slope;
 }
 
-void stateIni(){
-	// will set state variables from other arduino. (SD card to serial bridge)
+void getBridge(){
+	// will set state variables and get necessary data from other arduino. (SD card to serial bridge)
+  if(Bridge.available()){
+    char buff[25] = {'\0'};
+    Bridge.readBytesUntil('\n',buff,25);
+    if(buff[0] == 'p'){
+      if(buff[1] == '1'){
+        launched == true;
+      }
+      else launched == false;
+      if(buff[2] == '1'){
+        released == true;
+      }
+      else released == false;
+      if(buff[3] == '1'){
+        reachAlt == true;
+      }
+      else reachAlt == false;
+      if(buff[4] == '1'){
+        GPSlock == true;
+      }
+      else GPSlock == false;
+    }
+    if(buff[0] == 'c'){
+      int comma = 0;
+      for(int i;i<25;i++){
+        if(buff[i]==','){
+          comma = i;
+        }
+      }
+    imgCmdCount = atoi(buff+1);
+    imgCmdTime = strtoul(buff+comma,NULL,10); 
+    }
+  }
 }
+
 
 void shiftAvgLeft(){
 	for(int i=0; i<AVG_LENGTH - 2; i++){
