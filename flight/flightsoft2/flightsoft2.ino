@@ -52,7 +52,7 @@ L3G gyro;
 LPS ps;
 LSM303 compass;
 //SoftwareSerial Xbee(8,15);  // RX, TX
-SoftwareSerial Bridge(9,15); //Rx, Tx this will be the serial bridge between the two microcontrollers
+SoftwareSerial Bridge(9,8); //Rx, Tx this will be the serial bridge between the two microcontrollers
 
 SoftwareSerial mySerial(8,7);
 Adafruit_GPS GPS(&mySerial);
@@ -66,7 +66,7 @@ Avg_t avg[DATA_LENGTH] = {0};
 
 
 boolean usingInterrupt = false;
-void useInterrupt(boolean);
+void useInterrupt(boolean);//prototype function
 //------------------------------------------------
 // setup runs once
 //------------------------------------------------
@@ -233,6 +233,7 @@ void getData(int pos){
 
   //camera and params (params if requested.)
   getBridge();
+
   
 
 
@@ -465,3 +466,9 @@ void useInterrupt(boolean v) {
     usingInterrupt = false;
   }
 }
+
+void releaseSat(){
+  //Release code here
+  
+}
+

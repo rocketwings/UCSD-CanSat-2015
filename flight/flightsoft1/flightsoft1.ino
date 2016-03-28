@@ -35,7 +35,7 @@ int camCmdCount = 0;
 unsigned long int timeSync = 0;
 unsigned long int timeCheck = 0;
 
-SoftwareSerial Bridge(8,15); //Rx, Tx this will be the serial bridge between the two microcontrollers
+SoftwareSerial Bridge(6,9); //Rx, Tx this will be the serial bridge between the two microcontrollers
 SoftwareSerial Xbee(3,4); // Rx,Tx subject to change.
 
 //cam
@@ -179,6 +179,7 @@ void checkCmd(){
 		
 		if(cmd == RELEASE){
 			Bridge.println(RELEASE);
+      releaseSat();
 		}
 		//add additional cmd checks here if needed.
 	}
@@ -295,4 +296,8 @@ void getSetSendParams(){
   }
 } 
   
+void releaseSat(){
+//put release code here
+  
+}
 
