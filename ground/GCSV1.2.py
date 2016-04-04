@@ -689,11 +689,11 @@ def SerialComm(port):
                 if (serialObj.inWaiting() and serState == "Start Serial"):
                     serialData = serialObj.readline()
                     serialObj.flushInput()
-                    if(serialData == "i\n"):
+                    if(serialData == "sending picture\n"):
                         img = open("Recieved.jpg","w")
                         while(True):
                             dat = serialObj.readline()
-                            if(dat == "i\n"):
+                            if(dat == "end\n"):
                                 break
                             else:
                                 img.write(dat)
