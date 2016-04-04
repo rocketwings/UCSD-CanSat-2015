@@ -82,10 +82,6 @@ PlotLoad = True
 # Classes
 # ---------------------------------------------------------------------------------------
 
-
-
-
-
 class MainWindow(tk.Tk):
     # Creates the main window with filemenus and pages
 
@@ -594,6 +590,7 @@ def ViewPlot(PltObj, Dates, Ylist, dateindex, xlabel="Time", title="Plot", timef
     else:
         pass
 
+
 def ControlSerial(run, pop):
     # method that sets the serialcommsindicator global
     global SerialCommsIndicator
@@ -630,6 +627,7 @@ def parse_serial(dataln):
         elif dataln[detected] == '\n':
             mylist.append(dataln[previous:detected - 1] + '\n')
     return mylist
+
 
 def SerialEndSetParams():
     global ThreadStart
@@ -691,6 +689,15 @@ def SerialComm(port):
                 if (serialObj.inWaiting() and serState == "Start Serial"):
                     serialData = serialObj.readline()
                     serialObj.flushInput()
+                    if(serialData == "i\n"):
+                        img = open("Recieved.jpg","w")
+                        while(True):
+                            dat = serialObj.readline()
+                            if(dat == "i\n"):
+                                break
+                            else:
+                                img.write(dat)
+
                     serialq.put(serialData, 0)
 
             except serial.SerialException:
@@ -717,7 +724,7 @@ def SendPacket(packet):
         sendq.put(packet,0)
     else:
         ob.popup("Still sending previous packet!")
-# initialization and program start
+
 
 def loop():
     # backend()
@@ -741,6 +748,8 @@ def UpdateCanvas():
     print('Canvas Update')
     PlotLoad = PlotLoadPrev
 
+
+# initialization and program start
 
 if __name__ == '__main__':
 
