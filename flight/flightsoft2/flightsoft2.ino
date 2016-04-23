@@ -118,7 +118,7 @@ void setup() {
   
   
   //while(1);
-  delay(1000);
+  //delay(1000);
 }
 
 //----------------------------------------------------
@@ -202,20 +202,14 @@ void getData(int pos){
 	data[pos].pressure = ps.readPressureMillibars();
   data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure);
   data[pos].temp = ps.readTemperatureC();
-//  gyro.read();
-//  data[pos].gyro_x = gyro.g.x;
-//  data[pos].gyro_y = gyro.g.y;
-//  data[pos].gyro_z = gyro.g.z;
+
 //  compass.read();
 //  data[pos].compass_ax = compass.a.x;
 //  data[pos].compass_ay = compass.a.y;
 //  data[pos].compass_az = compass.a.z;
-//  data[pos].compass_mx = compass.m.x;
-//  data[pos].compass_my = compass.m.y;
-//  data[pos].compass_mz = compass.m.z;
+
   //pitot
 	pitotRead = analogRead(PITOT_PIN);
-	// Serial.println(pitotRead);
   data[pos].airspeed = sqrt(2000.*(((pitotRead-PITOT_CAL)/(0.2*1024.0))-2.5)/1.225);
 	//GPS
   if (! usingInterrupt) {
@@ -246,12 +240,6 @@ void getData(int pos){
 
   //camera and params (params if requested.)
   getBridge();
-
-  
-
-
-  
- //
 }
 
 void serialMonitor(int pos){
@@ -286,6 +274,9 @@ void serialMonitor(int pos){
 	Serial.print(imgCmdCount);// number of imaging commands
 	Serial.print(",");
 	Serial.println(data[pos].bonus);
+  Serial.print((int)&GPS.latitude);
+  Serial.print('\t');
+  Serial.println((int)&data[pos].temp);
 }
 
 void bridgeSend(int pos){
