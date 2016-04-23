@@ -11,7 +11,7 @@
 #define DATA_LENGTH 20  //length of data array
 #define AVG_LENGTH 20  //length of avg array
 
-#define CHIP_SELECT 1 //CS pin for SD card reader MUST be set as OUTPUT
+#define CHIP_SELECT 10 //CS pin for SD card reader MUST be set as OUTPUT
 
 #define RELEASE_ALTITUDE 400 // altitude set for release of cansat for container in meters
 
@@ -48,7 +48,7 @@ Adafruit_VC0706 cam = Adafruit_VC0706(&Serial1);
 //------------------------------------------------
 
 void setup() {
-  //delay(2000);
+  delay(2000);
 	// Serial for debug
 	Serial.begin(BAUD);
   //while (!Serial) {
@@ -58,26 +58,28 @@ void setup() {
 	Bridge.begin(BAUD);
 	//xbee setup
 	Xbee.begin(BAUD);
+  Xbee.println("...Xbee initialized!");
 	//SD setup
-	Serial.print("SD card setup...");
+	Xbee.print("SD card setup...");
   pinMode(CHIP_SELECT, OUTPUT); // set CP as output
-  if(!SD.begin(CHIP_SELECT))
+  //digitalWrite(CHIP_SELECT, HIGH);
+  while(!SD.begin(CHIP_SELECT))
   {
-    Serial.println("Card Initialization Failure!");
-    while(1);
+    Xbee.println("Card Initialization Failure!");
+    
   }
-  else
-  {
-    Serial.println("Card Ready!");
-  }
+  
+  Xbee.println("Card Ready!");
+  
 	//camera setup
-	Serial.println("VC0706 Camera snapshot Initialization...");
+	Xbee.println("VC0706 Camera snapshot Initialization...");
   delay(1000);
   if (cam.begin()) Serial.println("Camera Found!");
   else {
     Serial.println("Camera not found");
     while(1);
   }
+  Xbee.println("Cam");
   cam.setImageSize(VC0706_640x480);
   
   //-----------
@@ -91,6 +93,7 @@ void setup() {
   //digitalWrite(13,LOW);
 
   Bridge.flush();
+  Xbee.println("...Setup Complete!");
   	
 }
 
@@ -101,11 +104,12 @@ void setup() {
 void loop() { 
   //Serial.println("sadfasdf");       
   parseSend();
-  checkCmd();
+  //checkCmd();
   //delay(5000);
   //Serial.println("Attempting Taking Pic");
   //snapshot();
   //while(1);
+  delay(10);
 }
 
 
@@ -115,6 +119,7 @@ void loop() {
 //----------------------------------------------------
 
 void parseSend(){
+  //Parses Bridge and sends it out to Xbee
   Bridge.listen();
 	if(Bridge.available()){
     Serial.println("Lin is a hero");
@@ -185,6 +190,7 @@ unsigned long time(){
 
 
 void checkCmd(){
+  Xbee.listen();
 	if(Xbee.available()){
 		char cmd = Xbee.read();
    
