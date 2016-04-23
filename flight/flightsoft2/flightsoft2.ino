@@ -54,8 +54,10 @@ LSM303 compass;
 //SoftwareSerial Xbee(8,15);  // RX, TX
 SoftwareSerial Bridge(9,8); //Rx, Tx this will be the serial bridge between the two microcontrollers
 
-SoftwareSerial mySerial(8,7);
-Adafruit_GPS GPS(&mySerial);
+//SoftwareSerial mySerial(10,16);
+//HardwareSerial mySerial = Serial1;
+Adafruit_GPS GPS(&Serial1);
+
 
 
 //float FakeGPS[5] = {1, 1, 1, 1, 1};
@@ -73,17 +75,23 @@ void useInterrupt(boolean);//prototype function
 
 void setup() {
   // initialize serial communication at BAUD bits per second:
-  //delay(3000);
-  Serial.begin(115200);
-  while (!Serial) {
+  //
+  Serial.begin(9600);
+  //while (!Serial) {
     // wait for serial port to connect. Needed for Leonardo only
-  }
-	
+  //}
+	//Ini Bridge
+  Bridge.begin(9600);
+  Serial.println("Bridge initialized");
 	//GPS
   GPS.begin(9600);
+  Serial.println("GPS initialized");
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+  Serial.println("GPS initialized");
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+  Serial.println("GPS initialized");
   useInterrupt(true);
+  Serial.println("GPS initialized");
   //-------------
   
 	
@@ -110,6 +118,7 @@ void setup() {
   
   
   //while(1);
+  delay(1000);
 }
 
 //----------------------------------------------------
@@ -117,22 +126,26 @@ void setup() {
 //----------------------------------------------------
 
 void loop() {        
-	
   getData(pos);
-//	Serial.println(avg[pos].altitude);
- // Serial.println(data[pos].altitude);
+	
   freqLimiter(pos);
-
-  pos++;
-  if(pos >= DATA_LENGTH){
-    pos = DATA_LENGTH - 1;
-    //Serial.println(pos);
-    avgGenerator(pos);
-		shiftDataLeft();
-		shiftAvgLeft(); 
-    
-		launchIndicator();
+  static bool filled = false;
+ 
+  if(pos == DATA_LENGTH){
+    filled = true;
+    pos = 0;   
   }
+  if(filled == true){
+      //Serial.println("LIN IS AN ASS");
+      avgGenerator(pos);
+      launchIndicator();//try adding accelerometer data as well for detection
+      //Serial.print(avg[pos].airspeed);
+      //Serial.print(",");
+      //Serial.println(data[pos].airspeed);
+  }
+  //Serial.println(pos);
+  //delay(500); 
+  pos++;
   
 }
 
@@ -246,13 +259,13 @@ void serialMonitor(int pos){
 	Serial.print(",");
 	Serial.print(packet_count); 
 	Serial.print(",");
-	Serial.print(avg[pos].altitude);
+	Serial.print(data[pos].altitude);
 	Serial.print(",");
-	Serial.print(avg[pos].pressure);
+	Serial.print(data[pos].pressure);
 	Serial.print(",");
 	Serial.print(avg[pos].airspeed);
 	Serial.print(",");
-	Serial.print(avg[pos].temp);
+	Serial.print(data[pos].temp);
 	Serial.print(",");
 	Serial.print(data[pos].voltage);
 	Serial.print(",");
@@ -276,6 +289,7 @@ void serialMonitor(int pos){
 }
 
 void bridgeSend(int pos){
+  Serial.println("Sending Bridge");
 	Bridge.print(TEAM_ID); //team ID
 	Bridge.print(",");
 	Bridge.print(packet_count); 
@@ -318,6 +332,7 @@ void freqLimiter(int pos){
 			
 			//logData(pos);		
 			//xbeeSend(pos);
+      bridgeSend(pos);
 			serialMonitor(pos);
       
 		}
@@ -328,33 +343,18 @@ void freqLimiter(int pos){
 }
 
 void avgGenerator(int pos){
-	int leftIdx;
-	int rightIdx;
-	if(pos - L_CUSHION >= 0){
-		leftIdx = pos - L_CUSHION;
-	}
-	else{
-		leftIdx = 0;
-	}
- 
-	if(pos + R_CUSHION <= DATA_LENGTH - 1){
-		rightIdx = pos - R_CUSHION;
-	}
- 
-	else{
-		rightIdx = DATA_LENGTH - 1;
-	}
+  avg[pos] = {0};
 	
-	for(int i = leftIdx; i <= rightIdx; i++){
-		avg[pos].pressure += data[i].pressure;
-		avg[pos].temp += data[i].temp;
-		avg[pos].altitude += data[i].altitude;
-		avg[pos].airspeed += data[i].airspeed;
+	for(int i = 0; i < DATA_LENGTH ; i++){
+		avg[pos].pressure = avg[pos].pressure+data[i].pressure;
+		avg[pos].temp = avg[pos].temp+data[i].temp;
+		avg[pos].altitude = avg[pos].altitude+data[i].altitude;
+		avg[pos].airspeed = avg[pos].airspeed+data[i].airspeed;
 	}
-	avg[pos].pressure = avg[pos].pressure / (rightIdx - leftIdx+2);
-	avg[pos].temp = avg[pos].temp / (rightIdx - leftIdx+2);
-	avg[pos].altitude = avg[pos].altitude / (rightIdx - leftIdx+2);
-	avg[pos].airspeed = avg[pos].airspeed / (rightIdx - leftIdx)+2;	
+	avg[pos].pressure /=  DATA_LENGTH;
+	avg[pos].temp /= DATA_LENGTH;
+	avg[pos].altitude /= DATA_LENGTH;
+	avg[pos].airspeed /= DATA_LENGTH;	
 }
 
 void releaseTrigger(int pos){
@@ -427,19 +427,6 @@ void getBridge(){
     imgCmdTime = strtoul(buff+comma,NULL,10); 
     }
   }
-}
-
-
-void shiftAvgLeft(){
-	for(int i=0; i<AVG_LENGTH - 2; i++){
-		avg[i] = avg[i+1];
-	}
-}
-
-void shiftDataLeft(){
-	for(int i=0; i<DATA_LENGTH - 2; i++){
-		data[i] = data[i+1];
-	}
 }
 
 SIGNAL(TIMER0_COMPA_vect) {

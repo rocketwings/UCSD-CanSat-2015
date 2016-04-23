@@ -35,7 +35,7 @@ int camCmdCount = 0;
 unsigned long int timeSync = 0;
 unsigned long int timeCheck = 0;
 
-SoftwareSerial Bridge(6,9); //Rx, Tx this will be the serial bridge between the two microcontrollers
+SoftwareSerial Bridge(11,9); //Rx, Tx this will be the serial bridge between the two microcontrollers
 SoftwareSerial Xbee(3,4); // Rx,Tx subject to change.
 
 //cam
@@ -48,8 +48,12 @@ Adafruit_VC0706 cam = Adafruit_VC0706(&Serial1);
 //------------------------------------------------
 
 void setup() {
+  //delay(2000);
 	// Serial for debug
 	Serial.begin(BAUD);
+  //while (!Serial) {
+    // wait for serial port to connect. Needed for Leonardo only
+  //}
 	//bridge setup
 	Bridge.begin(BAUD);
 	//xbee setup
@@ -76,14 +80,26 @@ void setup() {
   }
   cam.setImageSize(VC0706_640x480);
   
-  //-----------	
+  //-----------
+  
+  //digitalWrite(13,HIGH);
+  //delay(250);
+  //digitalWrite(13,LOW);
+  //delay(250);
+  //digitalWrite(13,HIGH);
+  //delay(250);
+  //digitalWrite(13,LOW);
+
+  Bridge.flush();
+  	
 }
 
 //----------------------------------------------------
 // the loop routine runs over and over again forever:
 //----------------------------------------------------
 
-void loop() {        
+void loop() { 
+  //Serial.println("sadfasdf");       
   parseSend();
   checkCmd();
   //delay(5000);
@@ -99,11 +115,21 @@ void loop() {
 //----------------------------------------------------
 
 void parseSend(){
+  Bridge.listen();
 	if(Bridge.available()){
+    Serial.println("Lin is a hero");
 		char buff[100]={'\0'};
 		int commas[15]={0};
 		int j = 0;
 		Bridge.readBytesUntil('\n',buff,100);
+    for(int i; i<100; i++){
+      Xbee.print(buff[i]);
+      if(buff[i+1]=='\0' && buff[i]!='\n'){
+        Xbee.println();
+        break;
+      }
+    }
+    Bridge.flush();
 		for(int i=0;i<100;i++){
 			if(buff[i] == ','){
 				commas[j] = i;
@@ -114,6 +140,7 @@ void parseSend(){
         break;
       }
 		}
+    
 		timeCheck = millis();
 		timeSync = strtoul(buff+commas[11]+1,NULL,10);
 				
@@ -147,13 +174,7 @@ void parseSend(){
 		}
 		saveParams();
     // send telemetry over xbee
-    for(int i; i<100; i++){
-      Xbee.print(buff[i]);
-      if(buff[i+1]=='\0' && buff[i]!='\n'){
-        Xbee.println();
-        break;
-      }
-    }
+    
     
 	}
 }
