@@ -14,10 +14,7 @@
 #define SEND_PER  1000  //send period in milliseconds
 #define DATA_LENGTH 15  //length of data array
 #define AVG_LENGTH 15  //length of avg array
-#define L_CUSHION 9 // left cushion for averaging. if 9, takes average of 10 values to left including pos.
-#define R_CUSHION 0 //disregard this for now. leave it 0.
 
-#define CHIP_SELECT 10 //CS pin for SD card reader MUST be set as OUTPUT
 #define PITOT_PIN 20//analog pin for pitot tube
 #define PITOT_CAL 31  //calibration for the zero point of the differential pressure
 
@@ -38,27 +35,22 @@ boolean GPSlock = false; //boolean for if cansat has a gps lock
 
 //--------------
 
-unsigned long last_send = 0;
-unsigned long this_send = 0;
+unsigned long last_send = 0; // time of last sending event
+unsigned long this_send = 0; 
 unsigned long missionTime = 0;
 int imgCmdCount = 0;
 unsigned long imgCmdTime = 0;
 
-int pos = 0;
+int pos = 0; // index
 int packet_count = 0;
 int pitotRead = 0;
 
 L3G gyro;
 LPS ps;
 LSM303 compass;
-//SoftwareSerial Xbee(8,15);  // RX, TX
 SoftwareSerial Bridge(9,8); //Rx, Tx this will be the serial bridge between the two microcontrollers
 
-//SoftwareSerial mySerial(10,16);
-//HardwareSerial mySerial = Serial1;
 Adafruit_GPS GPS(&Serial1);
-
-
 
 //float FakeGPS[5] = {1, 1, 1, 1, 1};
 //float gpsData[5] = {-1, -1, -1, -1, -1};
@@ -93,8 +85,7 @@ void setup() {
   useInterrupt(true);
   Serial.println("GPS initialized");
   //-------------
-  
-	
+  	
   Serial.println("lkdsfoijewaflkjfds");
   Wire.begin();
 
@@ -243,6 +234,7 @@ void getData(int pos){
 }
 
 void serialMonitor(int pos){
+  /*
 	Serial.print(TEAM_ID); //team ID
 	Serial.print(",");
 	Serial.print(packet_count); 
@@ -273,27 +265,29 @@ void serialMonitor(int pos){
 	Serial.print(",");
 	Serial.print(imgCmdCount);// number of imaging commands
 	Serial.print(",");
-	Serial.println(data[pos].bonus);
-  Serial.print((int)&GPS.latitude);
-  Serial.print('\t');
-  Serial.println((int)&data[pos].temp);
+	Serial.print(data[pos].bonus);
+  Serial.print("\n");
+  //Serial.print((int)&GPS.latitude);
+  //Serial.print('\t');
+  //Serial.print((int)&data[pos].temp);
+  //Serial.print("\n");
+  */
 }
 
 void bridgeSend(int pos){
-  Serial.println("Sending Bridge");
 	Bridge.print(TEAM_ID); //team ID
 	Bridge.print(",");
 	Bridge.print(packet_count); 
 	Bridge.print(",");
-	Bridge.print(avg[pos].altitude);
+	Bridge.print(avg[pos].altitude,2);
 	Bridge.print(",");
-	Bridge.print(avg[pos].pressure);
+	Bridge.print(avg[pos].pressure,2);
 	Bridge.print(",");
-	Bridge.print(avg[pos].airspeed);
+	Bridge.print(avg[pos].airspeed,2);
 	Bridge.print(",");
-	Bridge.print(avg[pos].temp);
+	Bridge.print(avg[pos].temp,2);
 	Bridge.print(",");
-	Bridge.print(data[pos].voltage);
+	Bridge.print(data[pos].voltage,2);
 	Bridge.print(",");
 	Bridge.print(GPS.latitude); //latitude
 	Bridge.print(",");
@@ -311,7 +305,41 @@ void bridgeSend(int pos){
 	Bridge.print(launched);// time of last imaging command
 	Bridge.print(released);// number of imaging commands
 	Bridge.print(reachAlt);
-	Bridge.println(GPSlock);
+	Bridge.print(GPSlock);
+  Bridge.print("\n");
+
+  Serial.print(TEAM_ID); //team ID
+  Serial.print(",");
+  Serial.print(packet_count); 
+  Serial.print(",");
+  Serial.print(avg[pos].altitude,2);
+  Serial.print(",");
+  Serial.print(avg[pos].pressure,2);
+  Serial.print(",");
+  Serial.print(avg[pos].airspeed,2);
+  Serial.print(",");
+  Serial.print(avg[pos].temp,2);
+  Serial.print(",");
+  Serial.print(data[pos].voltage,2);
+  Serial.print(",");
+  Serial.print(GPS.latitude); //latitude
+  Serial.print(",");
+  Serial.print(GPS.longitude);//longitude
+  Serial.print(",");
+  Serial.print(GPS.altitude);//altitude
+  Serial.print(",");
+  Serial.print(GPS.satellites);// sat num
+  Serial.print(",");
+  Serial.print(GPS.speed);// gps speed
+  Serial.print(",");
+  Serial.print(missionTime);// time
+  Serial.print(",");
+  // State Params
+  Serial.print(launched);// time of last imaging command
+  Serial.print(released);// number of imaging commands
+  Serial.print(reachAlt);
+  Serial.print(GPSlock);
+  Serial.print("\n");
 }
 
 void freqLimiter(int pos){
