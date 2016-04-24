@@ -10,6 +10,7 @@
 #define BAUD 9600
 #define DATA_LENGTH 20  //length of data array
 #define AVG_LENGTH 20  //length of avg array
+#define RESETMICRO 7 //pin to reset promicro (RED)
 
 #define CHIP_SELECT 10 //CS pin for SD card reader MUST be set as OUTPUT
 
@@ -48,6 +49,8 @@ Adafruit_VC0706 cam = Adafruit_VC0706(&Serial1);
 //------------------------------------------------
 
 void setup() {
+  pinMode(RESETMICRO,OUTPUT);
+  digitalWrite(RESETMICRO, HIGH);
   delay(2000);
 	// Serial for debug
 	Serial.begin(BAUD);
@@ -94,6 +97,11 @@ void setup() {
 
   Bridge.flush();
   Xbee.println("...Setup Complete!");
+
+  delay(1000);
+  digitalWrite(RESETMICRO, LOW);
+  delay(1);
+  digitalWrite(RESETMICRO, HIGH);
   	
 }
 
@@ -127,13 +135,9 @@ void parseSend(){
 		int commas[15]={0};
 		int j = 0;
 		Bridge.readBytesUntil('\n',buff,100);
-    for(int i; i<100; i++){
-      Xbee.print(buff[i]);
-      if(buff[i+1]=='\0' && buff[i]!='\n'){
-        Xbee.println();
-        break;
-      }
-    }
+   
+    Xbee.println(buff);
+    
     Bridge.flush();
 		for(int i=0;i<100;i++){
 			if(buff[i] == ','){
@@ -179,8 +183,6 @@ void parseSend(){
 		}
 		saveParams();
     // send telemetry over xbee
-    
-    
 	}
 }
 
