@@ -87,9 +87,7 @@ class MainWindow(tk.Tk):
 
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-
         self.configure(bg="white", highlightcolor="white", highlightbackground="white")
-
         self.wm_title("GCS (Version 1.0)")
         self.protocol('WM_DELETE_WINDOW', self.endprog)
 
@@ -759,6 +757,8 @@ if __name__ == '__main__':
 
     ob = MainWindow()
     ob.geometry("1280x720")
+
+
     ob.minsize(600, 400)
     ob.after(0, loop)
     # ani = animation.FuncAnimation(f, animate, interval=1000)
