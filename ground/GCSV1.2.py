@@ -749,6 +749,10 @@ def UpdateCanvas():
     PlotLoad = PlotLoadPrev
 
 
+def FileParse():  # will eventually allow any text file to be parsed and graphed
+    pass
+
+
 # initialization and program start
 
 if __name__ == '__main__':
@@ -765,3 +769,5 @@ if __name__ == '__main__':
                  "Enter a Serial Port Before "
                  "Starting Serial!")
     ob.mainloop()
+
+
