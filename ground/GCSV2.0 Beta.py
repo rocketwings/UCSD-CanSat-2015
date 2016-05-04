@@ -20,6 +20,7 @@ import threading
 from time import sleep
 import sys
 import tkMessageBox
+from functools import partial
 
 # from matplotlib.figure import Figure
 # from Tkinter import ttk
@@ -92,6 +93,8 @@ class MainWindow(tk.Tk):
         tk.Tk.__init__(self, *args, **kwargs)
 
         self.Ran = False
+        self.TimeCol = 0
+        self.dateindex = 0
 
         self.configure(bg="white", highlightcolor="white", highlightbackground="white")
         self.wm_title("GCS (Version 1.0)")
@@ -276,11 +279,11 @@ class MainWindow(tk.Tk):
                 serialStateq.get()
             serialStateq.put("End Serial", 0)
 
-        if(PlotLoad or Counter):
+        if(PlotLoad):
             self.data = FileParse()
+            #print(self.data)
 
-            TimeCol = 0
-            NumLists = 0
+            NumLists = len(self.data)
 
             if(self.Ran == False):
                 self.Ran = True
@@ -291,39 +294,39 @@ class MainWindow(tk.Tk):
 
                 for i,List in enumerate(self.data):
                     if(List[0]=="Time" or List[0]=="time"):
-                        TimeCol = i
-
-                    NumLists = i
-                    print(str(TimeCol) + " " + str(NumLists))
-
-                    DisplayChoice.add_radiobutton(label=self.data[i][0],
-                                                  command=lambda: ChangeDisplay(self.data[i][0],self.data[i][0]))
-                print(NumLists)
+                        self.TimeCol = i
+                    DisplayChoice.add_radiobutton(label=List[0],command=partial(ChangeDisplay, List[0], List[0]))
+                    #print(List[0])
+                #print(NumLists)
                 DisplayChoice.add_radiobutton(label="Show All", command=lambda: ChangeDisplay("All", "all"))
                 self.menubar.add_cascade(label="View", menu=DisplayChoice)
 
+            #print(self.data[self.TimeCol])
             # Configure timedates...
             timeListConfigured = []
-            dateindex = 0
-            for k, val in enumerate(self.data[TimeCol]):
-                # print(repr(timeList[k]))
-                try:
-                    datetimeobject = datetime.strptime('2015 ' + str(self.data[TimeCol][k+1]), '%Y %I%M%S')
-                    timeListConfigured.append(datetimeobject)
-                    dateindex = k
-                except:
-                    pass
-            print(len(timeListConfigured))
-            timeDates = dates.date2num(timeListConfigured)
 
+            for k, val in enumerate(self.data[self.TimeCol]):
+
+                if(k < len(self.data[self.TimeCol])-1):
+
+                    datetimeobject = datetime.strptime('2015 ' + str(self.data[self.TimeCol][k+1]), '%Y %I%M%S')
+                    timeListConfigured.append(datetimeobject)
+                    self.dateindex = k
+            #print(len(timeListConfigured))
+
+
+            timeDates = dates.date2num(timeListConfigured)
+            #print(len(timeDates))
+            global GraphParam
             if(GraphParam != "All"):
                 a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
                 for i, list in enumerate(self.data):
                      if(GraphParam==self.data[i][0]):
+                         #print(GraphParam)
                          tempList = self.data[i][1:]
-                         print(len(tempList))
-                         print(len(timeDates))
-                         ViewPlot(a, timeDates, tempList, dateindex,
+                         #print(tempList)
+
+                         ViewPlot(a, timeDates, tempList, self.dateindex,
                                   title=self.data[i][0],
                                   color=ALTITUDE_COLOR,
                                   marker=PointSymbol,
@@ -331,21 +334,28 @@ class MainWindow(tk.Tk):
 
             if(GraphParam == "All"):
                 GraphObjs = []
-                x = math.ceil(math.sqrt(NumLists))
-                y = math.ceil((NumLists - x)/x) + 1
+                y = int(math.ceil(math.sqrt(NumLists)))
+
+                x = int(math.ceil(float(NumLists - y) / float(y))) + 1
+
+
+                print(x,y)
+
                 j = 0
-                k = 0
-                for i, list in enumerate(self.data):
-                    k = i - 1
-                    if(k>y-1):
-                        k = 0
 
+                for i in range(NumLists):
+                    k = i % y
                     GraphObjs.append(plt.subplot2grid((x, y), (j, k), rowspan=1, colspan=1, axisbg=GRAPH_BG))
+                    #print(j, k)
+                    if (k == y-1):
+                        j += 1
 
-                    k += 1
+
+
 
                 for i, list in enumerate(self.data):
-                    ViewPlot(GraphObjs[i], timeDates, self.data[i], dateindex,
+                    tempList = self.data[i][1:]
+                    ViewPlot(GraphObjs[i], timeDates, tempList, self.dateindex,
                              title=self.data[i][0],
                              color=ALTITUDE_COLOR,
                              marker=PointSymbol,
@@ -523,115 +533,6 @@ def animate(i):
     print('t: ' + str(timeprev - time.time()))
 
 
-def backend():
-    SerialEndSetParams()
-    if (SerialCommsIndicator == "Start Serial" and ThreadStart == True):
-        while (True):
-            try:
-                serialData = serialq.get(0)
-                # serialq.task_done()
-            except Queue.Empty:
-                # serialData = ""
-                break
-            # print(serialData)
-            fo = open(LogName, "a+")
-            fo.write(serialData)
-            fo.close()
-
-    if (SerialCommsIndicator == "Start Serial" and ThreadStart == True):
-        while (serialStateq.empty == False):
-            serialStateq.get()
-        serialStateq.put("Start Serial", 0)
-
-    elif (SerialCommsIndicator == "End Serial" and ThreadStart == True):
-        while (serialStateq.empty == False):
-            serialStateq.get()
-        serialStateq.put("End Serial", 0)
-
-    if (PlotLoad or Counter):
-        # major if statement that opens log file and reads as well as writes to it
-        # in addition updates plot from log file
-        global Counter
-        Counter = 0
-        try:
-            fo2 = open(LogName, "r")
-        except:
-            fo2 = open(LogName, "a+")
-        getData = fo2.read()
-        fo2.close()
-        dataLine = getData.split('\n')
-        datalnList = []
-        altList = []
-        pressList = []
-        spdList = []
-        tempList = []
-        voltList = []
-        gpsspdList = []
-        timeList = []
-        timeListConfigured = []
-        dateindex = 0
-
-        for eachline, string in enumerate(dataLine):
-            datalnList = parse_serial(dataLine[eachline])
-            # print(datalnList[1])
-            if (len(datalnList) >= 14):
-                altList.append(float(datalnList[2]))
-                pressList.append(float(datalnList[3]))
-                spdList.append(float(datalnList[4]))
-                tempList.append(float(datalnList[5]))
-                voltList.append(float(datalnList[6]))
-                gpsspdList.append(float(datalnList[11]))
-                timeList.append(datalnList[12])
-
-        for k, val in enumerate(timeList):
-            # print(repr(timeList[k]))
-            datetimeobject = datetime.strptime('2015 ' + str(timeList[k]), '%Y %I:%M:%S')
-            timeListConfigured.append(datetimeobject)
-            dateindex = k
-
-        timeDates = dates.date2num(timeListConfigured)
-        if (GraphParam != "All"):
-            a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
-            if (GraphParam == "Altitude"):
-                ViewPlot(a, timeDates, altList, dateindex, title="Altitude", color=ALTITUDE_COLOR, marker=PointSymbol,
-                         markersize=MarkerSize)
-            if (GraphParam == "Pressure"):
-                ViewPlot(a, timeDates, pressList, dateindex, title="Pressure", color=PRESSURE_COLOR, marker=PointSymbol,
-                         markersize=MarkerSize)
-            if (GraphParam == "Speed"):
-                ViewPlot(a, timeDates, spdList, dateindex, title="Speed", color=SPEED_COLOR, marker=PointSymbol,
-                         markersize=MarkerSize)
-            if (GraphParam == "Temperature"):
-                ViewPlot(a, timeDates, tempList, dateindex, title="Temperature", color=TEMPERATURE_COLOR,
-                         marker=PointSymbol, markersize=MarkerSize)
-            if (GraphParam == "Voltage"):
-                ViewPlot(a, timeDates, voltList, dateindex, title="Voltage", color=VOLTAGE_COLOR, marker=PointSymbol,
-                         markersize=MarkerSize)
-            if (GraphParam == "GPS Speed"):
-                ViewPlot(a, timeDates, gpsspdList, dateindex, title="GPS Speed", color=GPSSPD_COLOR, marker=PointSymbol,
-                         markersize=MarkerSize)
-
-        if (GraphParam == "All"):
-            a = plt.subplot2grid((4, 6), (0, 0), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            ViewPlot(a, timeDates, altList, dateindex, title="Altitude", color=ALTITUDE_COLOR, marker=PointSymbol,
-                     markersize=MarkerSize)
-            p = plt.subplot2grid((4, 6), (0, 2), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            ViewPlot(p, timeDates, pressList, dateindex, title="Pressure", color=PRESSURE_COLOR, marker=PointSymbol,
-                     markersize=MarkerSize)
-            s = plt.subplot2grid((4, 6), (0, 4), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            ViewPlot(s, timeDates, spdList, dateindex, title="Speed", color=SPEED_COLOR, marker=PointSymbol,
-                     markersize=MarkerSize)
-            t = plt.subplot2grid((4, 6), (2, 0), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            ViewPlot(t, timeDates, tempList, dateindex, title="Temperature", color=TEMPERATURE_COLOR,
-                     marker=PointSymbol, markersize=MarkerSize)
-            v = plt.subplot2grid((4, 6), (2, 2), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            ViewPlot(v, timeDates, voltList, dateindex, title="Voltage", color=VOLTAGE_COLOR, marker=PointSymbol,
-                     markersize=MarkerSize)
-            g = plt.subplot2grid((4, 6), (2, 4), rowspan=2, colspan=2, axisbg=GRAPH_BG)
-            ViewPlot(g, timeDates, gpsspdList, dateindex, title="GPS Speed", color=GPSSPD_COLOR, marker=PointSymbol,
-                     markersize=MarkerSize)
-        plt.tight_layout(pad=3)
-        ob.frames[PageThree].canvas.show()
 
 
 def ChangeDisplay(WhatDisp, WhatMeth):
@@ -641,6 +542,7 @@ def ChangeDisplay(WhatDisp, WhatMeth):
     global Counter
 
     GraphParam = WhatDisp
+    print("changing to: "+str(GraphParam))
     MethodName = WhatMeth
     Counter = 1000
 
