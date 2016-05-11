@@ -9,6 +9,7 @@ import ttk
 import time
 import serial
 import matplotlib
+import math
 import matplotlib.animation as animation
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2TkAgg
 from matplotlib import style
@@ -85,8 +86,13 @@ PlotLoad = True
 class MainWindow(tk.Tk):
     # Creates the main window with filemenus and pages
 
+
+
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
+
+        self.Ran = False
+
         self.configure(bg="white", highlightcolor="white", highlightbackground="white")
         self.wm_title("GCS (Version 1.0)")
         self.protocol('WM_DELETE_WINDOW', self.endprog)
@@ -96,9 +102,9 @@ class MainWindow(tk.Tk):
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
 
-        menubar = tk.Menu(container)
+        self.menubar = tk.Menu(container)
 
-        filemenu = tk.Menu(menubar, tearoff=0)
+        filemenu = tk.Menu(self.menubar, tearoff=0)
         filemenu.add_radiobutton(label="Start Serial Comms", command=lambda: ControlSerial("start", self))
         filemenu.add_radiobutton(label="Pause Serial Comms", command=lambda: self.popup1("WARNING!",
                                                                                          "Any "
@@ -116,42 +122,26 @@ class MainWindow(tk.Tk):
         filemenu.add_command(label="Exit",
                              command=self.endprog)
         filemenu.configure(bg=BACKGROUND_MENU_COLOR, fg=TEXT_COLOR)
-        menubar.add_cascade(label="File", menu=filemenu)
+        self.menubar.add_cascade(label="File", menu=filemenu)
+        # DisplayChoice
+        #self.MainBackend(menubar)
 
-        DisplayChoice = tk.Menu(menubar, tearoff=1)
-        DisplayChoice.configure(bg=BACKGROUND_MENU_COLOR, fg=TEXT_COLOR)
-        DisplayChoice.add_radiobutton(label="Altitude",
-                                      command=lambda: ChangeDisplay("Altitude", "alt"))
-        DisplayChoice.add_radiobutton(label="Pressure",
-                                      command=lambda: ChangeDisplay("Pressure", "pressure"))
-        DisplayChoice.add_radiobutton(label="Speed",
-                                      command=lambda: ChangeDisplay("Speed", "speed"))
-        DisplayChoice.add_radiobutton(label="Temperature",
-                                      command=lambda: ChangeDisplay("Temperature", "Temp"))
-        DisplayChoice.add_radiobutton(label="Voltage",
-                                      command=lambda: ChangeDisplay("Voltage", "volt"))
-        DisplayChoice.add_radiobutton(label="GPS Speed",
-                                      command=lambda: ChangeDisplay("GPS Speed", "gpsspd"))
-        DisplayChoice.add_radiobutton(label="Show All",
-                                      command=lambda: ChangeDisplay("All", "all"))
-        menubar.add_cascade(label="View", menu=DisplayChoice)
-
-        PlotControl = tk.Menu(menubar, tearoff=0)
+        PlotControl = tk.Menu(self.menubar, tearoff=0)
         PlotControl.configure(bg=BACKGROUND_MENU_COLOR, fg=TEXT_COLOR)
         PlotControl.add_radiobutton(label="Resume Plot",
                                     command=lambda: LoadPlot('start'))
         PlotControl.add_radiobutton(label="Pause Plot",
                                     command=lambda: LoadPlot('pause'))
-        menubar.add_cascade(label="Pause/Resume Plotting", menu=PlotControl)
+        self.menubar.add_cascade(label="Pause/Resume Plotting", menu=PlotControl)
 
-        PortMenu = tk.Menu(menubar, tearoff=0)
+        PortMenu = tk.Menu(self.menubar, tearoff=0)
         PortMenu.configure(bg=BACKGROUND_MENU_COLOR, fg=TEXT_COLOR)
 
         PortMenu.add_command(label="Enter Port",
                              command=lambda: self.PopPortDia("Enter Port (COMX):"))
-        menubar.add_cascade(label="Port", menu=PortMenu)
+        self.menubar.add_cascade(label="Port", menu=PortMenu)
 
-        tk.Tk.config(self, menu=menubar)
+        tk.Tk.config(self, menu=self.menubar)
 
         self.frames = {}
 
@@ -259,6 +249,112 @@ class MainWindow(tk.Tk):
         B1.pack()
         pop.resizable(width=False, height=False)
         pop.mainloop()
+
+    def MainBackend(self):
+
+        SerialEndSetParams()
+        if (SerialCommsIndicator == "Start Serial" and ThreadStart == True):
+            while (True):
+                try:
+                    serialData = serialq.get(0)
+                    # serialq.task_done()
+                except Queue.Empty:
+                    # serialData = ""
+                    break
+                # print(serialData)
+                fo = open(LogName, "a+")
+                fo.write(serialData)
+                fo.close()
+
+        if (SerialCommsIndicator == "Start Serial" and ThreadStart == True):
+            while (serialStateq.empty == False):
+                serialStateq.get()
+            serialStateq.put("Start Serial", 0)
+
+        elif (SerialCommsIndicator == "End Serial" and ThreadStart == True):
+            while (serialStateq.empty == False):
+                serialStateq.get()
+            serialStateq.put("End Serial", 0)
+
+        if(PlotLoad or Counter):
+            self.data = FileParse()
+
+            TimeCol = 0
+            NumLists = 0
+
+            if(self.Ran == False):
+                self.Ran = True
+                DisplayChoice = tk.Menu(self.menubar, tearoff=1)
+                DisplayChoice.configure(bg=BACKGROUND_MENU_COLOR, fg=TEXT_COLOR)
+
+                # Find time column and number of lists and populate Display menu.
+
+                for i,List in enumerate(self.data):
+                    if(List[0]=="Time" or List[0]=="time"):
+                        TimeCol = i
+
+                    NumLists = i
+                    print(str(TimeCol) + " " + str(NumLists))
+
+                    DisplayChoice.add_radiobutton(label=self.data[i][0],
+                                                  command=lambda: ChangeDisplay(self.data[i][0],self.data[i][0]))
+                print(NumLists)
+                DisplayChoice.add_radiobutton(label="Show All", command=lambda: ChangeDisplay("All", "all"))
+                self.menubar.add_cascade(label="View", menu=DisplayChoice)
+
+            # Configure timedates...
+            timeListConfigured = []
+            dateindex = 0
+            for k, val in enumerate(self.data[TimeCol]):
+                # print(repr(timeList[k]))
+                try:
+                    datetimeobject = datetime.strptime('2015 ' + str(self.data[TimeCol][k+1]), '%Y %I%M%S')
+                    timeListConfigured.append(datetimeobject)
+                    dateindex = k
+                except:
+                    pass
+            print(len(timeListConfigured))
+            timeDates = dates.date2num(timeListConfigured)
+
+            if(GraphParam != "All"):
+                a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
+                for i, list in enumerate(self.data):
+                     if(GraphParam==self.data[i][0]):
+                         tempList = self.data[i][1:]
+                         print(len(tempList))
+                         print(len(timeDates))
+                         ViewPlot(a, timeDates, tempList, dateindex,
+                                  title=self.data[i][0],
+                                  color=ALTITUDE_COLOR,
+                                  marker=PointSymbol,
+                                  markersize=MarkerSize)
+
+            if(GraphParam == "All"):
+                GraphObjs = []
+                x = math.ceil(math.sqrt(NumLists))
+                y = math.ceil((NumLists - x)/x) + 1
+                j = 0
+                k = 0
+                for i, list in enumerate(self.data):
+                    k = i - 1
+                    if(k>y-1):
+                        k = 0
+
+                    GraphObjs.append(plt.subplot2grid((x, y), (j, k), rowspan=1, colspan=1, axisbg=GRAPH_BG))
+
+                    k += 1
+
+                for i, list in enumerate(self.data):
+                    ViewPlot(GraphObjs[i], timeDates, self.data[i], dateindex,
+                             title=self.data[i][0],
+                             color=ALTITUDE_COLOR,
+                             marker=PointSymbol,
+                             markersize=MarkerSize)
+
+            plt.tight_layout(pad=3)
+            ob.frames[PageThree].canvas.show()
+
+
 
 
 class PageThree(tk.Frame):
@@ -433,7 +529,7 @@ def backend():
         while (True):
             try:
                 serialData = serialq.get(0)
-                #serialq.task_done()
+                # serialq.task_done()
             except Queue.Empty:
                 # serialData = ""
                 break
@@ -443,15 +539,14 @@ def backend():
             fo.close()
 
     if (SerialCommsIndicator == "Start Serial" and ThreadStart == True):
-        while(serialStateq.empty==False):
+        while (serialStateq.empty == False):
             serialStateq.get()
         serialStateq.put("Start Serial", 0)
 
     elif (SerialCommsIndicator == "End Serial" and ThreadStart == True):
-        while(serialStateq.empty==False):
+        while (serialStateq.empty == False):
             serialStateq.get()
         serialStateq.put("End Serial", 0)
-
 
     if (PlotLoad or Counter):
         # major if statement that opens log file and reads as well as writes to it
@@ -631,7 +726,7 @@ def SerialEndSetParams():
     global ThreadStart
     global PortSet
     global SerialCommsIndicator
-    if(serialendq.empty() == False):
+    if (serialendq.empty() == False):
         state = serialendq.get(0)
         if (state == 'end'):
             ThreadStart = False
@@ -674,7 +769,7 @@ def SerialComm(port):
                 serialObj.close()
                 print("Serial Comms Ended Successfully")
                 serialendq.put('end')
-                while(serialStateq.empty==False):
+                while (serialStateq.empty == False):
                     print('...')
                     serialStateq.get()
                 print('Process End')
@@ -687,11 +782,11 @@ def SerialComm(port):
                 if (serialObj.inWaiting() and serState == "Start Serial"):
                     serialData = serialObj.readline()
                     serialObj.flushInput()
-                    if(serialData == "sending picture\n"):
-                        img = open("Recieved.jpg","w")
-                        while(True):
+                    if (serialData == "sending picture\n"):
+                        img = open("Recieved.jpg", "w")
+                        while (True):
                             dat = serialObj.readline()
-                            if(dat == "end\n"):
+                            if (dat == "end\n"):
                                 break
                             else:
                                 img.write(dat)
@@ -718,8 +813,8 @@ def SerialThreadStart(port):
 
 
 def SendPacket(packet):
-    if (sendq.empty()==True):
-        sendq.put(packet,0)
+    if (sendq.empty() == True):
+        sendq.put(packet, 0)
     else:
         ob.popup("Still sending previous packet!")
 
@@ -732,7 +827,8 @@ def loop():
 
 
 def BackendThread():
-    t2 = multiprocessing.Process(target=backend())
+    #t2 = multiprocessing.Process(target=backend())
+    t2 = multiprocessing.Process(target=ob.MainBackend())
     t2.daemon = True
     t2.start()
     t2.join()
@@ -748,16 +844,42 @@ def UpdateCanvas():
 
 
 def FileParse():  # will eventually allow any text file to be parsed and graphed
-    pass
+    try:
+        fo2 = open(LogName, "r")
+    except:
+        fo2 = open(LogName, "a+")
+    getData = fo2.read()
+    fo2.close()
+
+    lines = getData.split('\n')
+    Headers = parse_serial(lines[0])
+    data = []
+    for i, header in enumerate(Headers):
+        # poplates data list with lists
+        data.append([])
+    #print(data)
+
+    for i, line in enumerate(lines):
+        dataPoints = parse_serial(line)
+        #print(dataPoints)
+        # populates dataPoints with values in each line
+        for j, list in enumerate(data):
+            # populates sublists of each header with corresponding points of data.(2D array kinda)
+            data[j-1].append(dataPoints[j-1])
+            #print(data)
+            # #######-------------------########## working here.
+    #print(data)
+
+    return data
 
 
 # initialization and program start
 
 if __name__ == '__main__':
+    #FileParse()
 
     ob = MainWindow()
     ob.geometry("1280x720")
-
 
     ob.minsize(600, 400)
     ob.after(0, loop)
@@ -769,5 +891,3 @@ if __name__ == '__main__':
                  "Enter a Serial Port Before "
                  "Starting Serial!")
     ob.mainloop()
-
-

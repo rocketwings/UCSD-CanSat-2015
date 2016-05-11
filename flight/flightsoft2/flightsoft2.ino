@@ -1,3 +1,9 @@
+/*
+ * Goes on the RED sparkfun micro
+ * 
+ */
+
+
 #include <Wire.h>
 #include <LSM303.h>
 #include <LPS.h>
@@ -188,7 +194,7 @@ void logData(int pos)
 */
 void getData(int pos){
 	// read data
-  missionTime = millis();
+  
   // pololu
 	data[pos].pressure = ps.readPressureMillibars();
   data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure);
@@ -221,6 +227,8 @@ void getData(int pos){
     if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
       return;  // we can fail to parse a sentence in which case we should just wait for another
   }
+  static unsigned long GPStime = GPS.hour * (1000*60*60) + GPS.minute * (1000*60) + GPS.seconds * (1000) + GPS.milliseconds;
+  missionTime = millis() + GPStime;
   //--------------------------------------------------------------
 	//GPS.latitude = gpsData[0];
 	//GPS.longitude = gpsData[1];

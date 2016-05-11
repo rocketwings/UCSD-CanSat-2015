@@ -1,3 +1,9 @@
+/*
+ * Goes on the BLUE pro-micro
+ *
+ */
+
+
 //#include <Wire.h>
 #include <SoftwareSerial.h>
 //#include <math.h>
@@ -10,7 +16,7 @@
 #define BAUD 9600
 #define DATA_LENGTH 20  //length of data array
 #define AVG_LENGTH 20  //length of avg array
-#define RESETMICRO 7 //pin to reset promicro (RED)
+#define RESETMICRO 6 //pin to reset promicro (RED)
 
 #define CHIP_SELECT 10 //CS pin for SD card reader MUST be set as OUTPUT
 
@@ -37,7 +43,7 @@ unsigned long int timeSync = 0;
 unsigned long int timeCheck = 0;
 
 SoftwareSerial Bridge(11,9); //Rx, Tx this will be the serial bridge between the two microcontrollers
-SoftwareSerial Xbee(3,4); // Rx,Tx subject to change.
+SoftwareSerial Xbee(8,4); // Rx,Tx subject to change.
 
 //cam
 Adafruit_VC0706 cam = Adafruit_VC0706(&Serial1);
@@ -54,6 +60,7 @@ void setup() {
   delay(2000);
 	// Serial for debug
 	Serial.begin(BAUD);
+  Serial1.begin(115200);
   //while (!Serial) {
     // wait for serial port to connect. Needed for Leonardo only
   //}
@@ -61,28 +68,28 @@ void setup() {
 	Bridge.begin(BAUD);
 	//xbee setup
 	Xbee.begin(BAUD);
-  Xbee.println("...Xbee initialized!");
+  Serial.println("...Xbee initialized!");
 	//SD setup
-	Xbee.print("SD card setup...");
+	Serial.print("SD card setup...");
   pinMode(CHIP_SELECT, OUTPUT); // set CP as output
   //digitalWrite(CHIP_SELECT, HIGH);
   while(!SD.begin(CHIP_SELECT))
   {
-    Xbee.println("Card Initialization Failure!");
+    Serial.println("Card Initialization Failure!");
     
   }
   
-  Xbee.println("Card Ready!");
+  Serial.println("Card Ready!");
   
 	//camera setup
-	Xbee.println("VC0706 Camera snapshot Initialization...");
+	Serial.println("VC0706 Camera snapshot Initialization...");
   delay(1000);
   if (cam.begin()) Serial.println("Camera Found!");
   else {
     Serial.println("Camera not found");
     while(1);
   }
-  Xbee.println("Cam");
+  Serial.println("Cam");
   cam.setImageSize(VC0706_640x480);
   
   //-----------
@@ -96,13 +103,16 @@ void setup() {
   //digitalWrite(13,LOW);
 
   Bridge.flush();
-  Xbee.println("...Setup Complete!");
+  Serial.println("...Setup Complete!");
 
   delay(1000);
   digitalWrite(RESETMICRO, LOW);
   delay(1);
   digitalWrite(RESETMICRO, HIGH);
-  	
+
+
+
+    
 }
 
 //----------------------------------------------------
@@ -111,8 +121,8 @@ void setup() {
 
 void loop() { 
   //Serial.println("sadfasdf");       
-  parseSend();
-  //checkCmd();
+  //parseSend();
+  checkCmd();
   //delay(5000);
   //Serial.println("Attempting Taking Pic");
   //snapshot();
@@ -195,8 +205,10 @@ void checkCmd(){
   Xbee.listen();
 	if(Xbee.available()){
 		char cmd = Xbee.read();
+    Serial.println(cmd);
    
 		if(cmd == TAKE_PIC){
+      Serial.println("IMAGE CMD");
 			snapshot();
 			
       camCmdCount ++;
@@ -207,6 +219,7 @@ void checkCmd(){
 		}
 		
 		if(cmd == RELEASE){
+      Serial.println("RELEASE CMD");
 			Bridge.println(RELEASE);
       releaseSat();
 		}
@@ -216,11 +229,14 @@ void checkCmd(){
 
 void snapshot(){
 	//camera snapshot and send code here
+  cam.setImageSize(VC0706_640x480);
   if (! cam.takePicture()) 
     Serial.println("Failed to snap!");
   else 
     Serial.println("Picture taken!");
-  LogPic();
+  uint16_t len = LogPic();
+  char fileName[] = "IMAGE00.JPG";
+  sendPic(fileName, len);
   
 }
 
@@ -242,18 +258,19 @@ uint16_t LogPic () {
 
   // Get the size of the image (frame) taken  
   uint16_t jpglen = cam.frameLength();
+  uint16_t len = jpglen;
   Serial.print("Storing ");
   Serial.print(jpglen, DEC);
   Serial.print(" byte image.");
 
   int32_t time = millis();
-  pinMode(8, OUTPUT);
+  //pinMode(8, OUTPUT);
   // Read all the data up to # bytes!
   byte wCount = 0; // For counting # of writes
   while (jpglen > 0) {
     // read 32 bytes at a time;
     uint8_t *buffer;
-    uint8_t bytesToRead = min(32, jpglen); // change 32 to 64 for a speedup but may not work with all setups!
+    uint8_t bytesToRead = min(64, jpglen); // change 32 to 64 for a speedup but may not work with all setups!
     buffer = cam.readPicture(bytesToRead);
     imgFile.write(buffer, bytesToRead);
     
@@ -269,7 +286,33 @@ uint16_t LogPic () {
   time = millis() - time;
   Serial.println("done!");
   Serial.print(time); Serial.println(" ms elapsed");
-  return jpglen;
+  return len;
+}
+
+int sendPic(char *fileName,uint16_t jpglen) {
+  File readFile;
+  if(SD.exists(fileName)) {
+    readFile = SD.open(fileName, FILE_READ);
+  }
+  else  {
+    Serial.print("That File doesnt exist!");
+    return(1); //can't find file, quit now;
+  }
+  Serial.println("sending picture");
+  Serial.println(jpglen,DEC);
+  Xbee.println("sending picture");
+  Xbee.println(jpglen,DEC);
+  delay(1000);
+  byte buffer[256];
+  while(readFile.available())  {
+    for(int i=0; i<256; i++) {
+      buffer[i] = readFile.read();
+    }
+    Xbee.write(buffer,256);
+    Serial.print(".");
+  }
+  Serial.print("\nDone.\n");
+  return(0);
 }
 
 void saveParams(){

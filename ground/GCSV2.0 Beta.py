@@ -21,6 +21,8 @@ from time import sleep
 import sys
 import tkMessageBox
 from functools import partial
+from PIL import ImageTk, Image
+import random
 
 # from matplotlib.figure import Figure
 # from Tkinter import ttk
@@ -30,6 +32,9 @@ from functools import partial
 LARGE_FONT = ("Verdana", 12)
 MEDIUM_FONT = ("Verdana", 10)
 SMALL_FONT = ("Verdana", 8)
+# '%Y %I%M%S'
+TIME_FMT = '%Y %H:%M:%S'
+JPG_NAME = 'recieved.jpg'
 
 ALTITUDE_COLOR = "#00EE76"
 PRESSURE_COLOR = "#00EEEE"
@@ -37,6 +42,10 @@ TEMPERATURE_COLOR = "#FF6103"
 SPEED_COLOR = "#FF3030"
 VOLTAGE_COLOR = "#EE00EE"
 GPSSPD_COLOR = "#FFC125"
+
+COLORS = [ALTITUDE_COLOR,PRESSURE_COLOR,TEMPERATURE_COLOR,SPEED_COLOR,VOLTAGE_COLOR,GPSSPD_COLOR,
+          ALTITUDE_COLOR,PRESSURE_COLOR,TEMPERATURE_COLOR,SPEED_COLOR,VOLTAGE_COLOR,GPSSPD_COLOR,
+          ALTITUDE_COLOR,PRESSURE_COLOR,TEMPERATURE_COLOR,SPEED_COLOR,VOLTAGE_COLOR,GPSSPD_COLOR] # put colors here.
 
 PADDING_COLOR = "#404040"
 PADDING_COLOR1 = "#404040"
@@ -86,8 +95,6 @@ PlotLoad = True
 
 class MainWindow(tk.Tk):
     # Creates the main window with filemenus and pages
-
-
 
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
@@ -267,6 +274,7 @@ class MainWindow(tk.Tk):
                 # print(serialData)
                 fo = open(LogName, "a+")
                 fo.write(serialData)
+                #print(serialData)
                 fo.close()
 
         if (SerialCommsIndicator == "Start Serial" and ThreadStart == True):
@@ -281,6 +289,7 @@ class MainWindow(tk.Tk):
 
         if(PlotLoad):
             self.data = FileParse()
+
             #print(self.data)
 
             NumLists = len(self.data)
@@ -308,8 +317,16 @@ class MainWindow(tk.Tk):
             for k, val in enumerate(self.data[self.TimeCol]):
 
                 if(k < len(self.data[self.TimeCol])-1):
+                    #print(str(self.data[self.TimeCol][k+1]))
+                    temp = int(self.data[self.TimeCol][k+1]) #total millis
+                    sec = str(int(round(temp/1000))%60)
 
-                    datetimeobject = datetime.strptime('2015 ' + str(self.data[self.TimeCol][k+1]), '%Y %I%M%S')
+                    min = str(int(round(temp / (1000*60)))%60)
+
+                    hour = str(int(round(temp/(1000*60*60)))%24)
+
+                    #print(hour+":"+min+":"+sec)
+                    datetimeobject = datetime.strptime('2015 ' +hour+":"+min+":"+sec, TIME_FMT)
                     timeListConfigured.append(datetimeobject)
                     self.dateindex = k
             #print(len(timeListConfigured))
@@ -328,39 +345,29 @@ class MainWindow(tk.Tk):
 
                          ViewPlot(a, timeDates, tempList, self.dateindex,
                                   title=self.data[i][0],
-                                  color=ALTITUDE_COLOR,
+                                  color=COLORS[i],
                                   marker=PointSymbol,
                                   markersize=MarkerSize)
 
             if(GraphParam == "All"):
                 GraphObjs = []
                 y = int(math.ceil(math.sqrt(NumLists)))
-
                 x = int(math.ceil(float(NumLists - y) / float(y))) + 1
-
-
-                print(x,y)
-
+                #print(x,y)
                 j = 0
-
                 for i in range(NumLists):
                     k = i % y
                     GraphObjs.append(plt.subplot2grid((x, y), (j, k), rowspan=1, colspan=1, axisbg=GRAPH_BG))
                     #print(j, k)
                     if (k == y-1):
                         j += 1
-
-
-
-
                 for i, list in enumerate(self.data):
                     tempList = self.data[i][1:]
                     ViewPlot(GraphObjs[i], timeDates, tempList, self.dateindex,
                              title=self.data[i][0],
-                             color=ALTITUDE_COLOR,
+                             color=COLORS[i],
                              marker=PointSymbol,
                              markersize=MarkerSize)
-
             plt.tight_layout(pad=3)
             ob.frames[PageThree].canvas.show()
 
@@ -408,7 +415,7 @@ class PageThree(tk.Frame):
                              command=lambda: SendPacket('c'))
         button2.grid(row=0, column=1, padx=0, pady=2, sticky='nsew')
         button3 = ttk.Button(buttonsFrame,
-                             text="Button 3",
+                             text="Picture",
                              cursor='hand2',
                              command=lambda: controller.show_frame(StartPage))
         button3.grid(row=1, column=0, padx=2, pady=0, sticky='nsew')
@@ -516,21 +523,47 @@ class StartPage(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
         self.configure(bg="white", highlightcolor="white", highlightbackground="white")
-        label = tk.Label(self, text="Start Page", font=LARGE_FONT)
-        label.pack(pady=10, padx=10)
+        self.grid_columnconfigure(0, weight=1)
+        label = tk.Label(self, text="Image", font=LARGE_FONT)
+        label.grid(row=0,column=0,columnspan=2,pady=10, padx=10)
 
-        button3 = ttk.Button(self, text="Visit Graph",
+        button3 = ttk.Button(self, text="To Graph",
                              command=lambda: controller.show_frame(PageThree))
-        button3.pack()
+        button3.grid(row=1,column=0,columnspan=2,pady=10, padx=10)
 
 
-def animate(i):
+        path = JPG_NAME
+        self.ImgFrame = tk.Frame(self)
+        self.ImgFrame.grid(row=2, column=0, columnspan=2)
+        self.Imglable = tk.Label(self.ImgFrame, bg="#000000", fg="#FFFFFF", text="Press Enter to load recieved image")
+        self.Imglable.pack(anchor="center")
+
+    def callback(self, path):
+        try:
+            print("Refreshing Image")
+            fhandle = Image.open(path)
+            Img = ImageTk.PhotoImage(fhandle, master=self.ImgFrame)
+            #ImgFrame.create_image((0,0), image=Img, state="normal",anchor="center")
+            fhandle.close()
+            self.ImgFrame.image = Img
+            self.Imglable.configure(image=Img)
+        except:
+            print("Image not found! Or corrupted :(")
+            self.ImgFrame.image = 0
+            pass
+
+
+
+
+
+
+#def animate(i):
     # this function runs every second and interupts the software loop.
     # basically the backend of the program
 
-    timeprev = time.time()
-    backend()
-    print('t: ' + str(timeprev - time.time()))
+#    timeprev = time.time()
+#    backend()
+#    print('t: ' + str(timeprev - time.time()))
 
 
 
@@ -642,7 +675,7 @@ def SerialComm(port):
     try:
         # print("thread start")
         serialObj = serial.Serial(port=port,
-                                  baudrate=19200,
+                                  baudrate=9600,
                                   parity=serial.PARITY_NONE,
                                   stopbits=serial.STOPBITS_ONE,
                                   bytesize=serial.EIGHTBITS,
@@ -657,14 +690,15 @@ def SerialComm(port):
         serialObj.flushOutput()
         # print("serial flushed!")
         # print("serial initialized")
+        run = 0
         while (True):
 
             # print("looping")
             try:
                 serState = serialStateq.get()
-                print(serState)
+                #print(serState)
             except serialStateq.empty:
-                print(serState + 'emptyq')
+                #print(serState + 'emptyq')
                 pass
 
             if (serState == "End Serial"):
@@ -678,23 +712,45 @@ def SerialComm(port):
                 return
 
             if (sendq.empty() == False):
-                serialObj.write(sendq.get(0))
-
+                temp = sendq.get(0)
+                serialObj.write(temp)
+                #print(temp)
+            #serialObj.write("Hello!")
             try:
                 if (serialObj.inWaiting() and serState == "Start Serial"):
                     serialData = serialObj.readline()
-                    serialObj.flushInput()
-                    if (serialData == "sending picture\n"):
-                        img = open("Recieved.jpg", "w")
+                    print(repr(serialData))
+                    #serialObj.flushInput()
+                    if (serialData == "sending picture\n" or serialData == "sending picture" or serialData == "sending picture\r\n"  ):
+                        run += 1
+                        print(run)
+                        serialData = ""
+                        length = serialObj.readline()
+                        length = length.rstrip()
+                        print(repr(length))
+                        img = open(JPG_NAME, "w")
+                        imgBytelist = []
+
                         while (True):
-                            dat = serialObj.readline()
-                            if (dat == "end\n"):
+
+                            dat = serialObj.read()
+                            img.write(dat)
+
+                            imgBytelist.append(dat)
+                            print(len(imgBytelist))
+                            try:
+                                if(len(imgBytelist) >= int(str(length))+10):
+                                    print("Image Recieved")
+
+                                    img.close()
+                                    break
+                            except:
+                                img.close()
+                                print(sys.exc_info()[0])
                                 break
-                            else:
-                                img.write(dat)
 
                     serialq.put(serialData, 0)
-
+                    serialObj.flushInput()
             except serial.SerialException:
                 print("Serial Failed")
                 return
@@ -725,6 +781,7 @@ def loop():
     # backend()
     # ob.frames[PageThree].canvas.draw()
     BackendThread()
+
     ob.after(1000, loop)
 
 
@@ -740,7 +797,7 @@ def UpdateCanvas():
     global PlotLoad
     PlotLoadPrev = PlotLoad
     PlotLoad = True
-    backend()
+    ob.MainBackend()
     print('Canvas Update')
     PlotLoad = PlotLoadPrev
 
@@ -754,20 +811,26 @@ def FileParse():  # will eventually allow any text file to be parsed and graphed
     fo2.close()
 
     lines = getData.split('\n')
-    Headers = parse_serial(lines[0])
+    #Headers = parse_serial(lines[0])
+    Headers = lines[0].split(",")
+    #print(Headers)
     data = []
+
     for i, header in enumerate(Headers):
         # poplates data list with lists
         data.append([])
     #print(data)
 
     for i, line in enumerate(lines):
-        dataPoints = parse_serial(line)
-        #print(dataPoints)
-        # populates dataPoints with values in each line
-        for j, list in enumerate(data):
-            # populates sublists of each header with corresponding points of data.(2D array kinda)
-            data[j-1].append(dataPoints[j-1])
+        if(len(Headers) == len(line.split(","))):
+            #print(line)
+            #dataPoints = parse_serial(line)
+            dataPoints = line.split(",")
+            #print(dataPoints)
+            # populates dataPoints with values in each line
+            for j, list in enumerate(data):
+                # populates sublists of each header with corresponding points of data.(2D array kinda)
+                data[j-1].append(dataPoints[j-1])
             #print(data)
             # #######-------------------########## working here.
     #print(data)
@@ -782,6 +845,8 @@ if __name__ == '__main__':
 
     ob = MainWindow()
     ob.geometry("1280x720")
+
+    ob.bind("<Return>", lambda x: ob.frames[StartPage].callback(JPG_NAME))
 
     ob.minsize(600, 400)
     ob.after(0, loop)
