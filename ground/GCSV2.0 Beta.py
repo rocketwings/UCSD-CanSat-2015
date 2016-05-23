@@ -1,6 +1,7 @@
 # ---------------------------------------------------------------------------------------
 # Libraries
 # ---------------------------------------------------------------------------------------
+
 import Tkinter as tk
 from datetime import datetime
 import multiprocessing
@@ -22,6 +23,8 @@ import sys
 import tkMessageBox
 from functools import partial
 from PIL import ImageTk, Image
+
+
 import random
 
 # from matplotlib.figure import Figure
@@ -339,7 +342,6 @@ class MainWindow(tk.Tk):
                 a = plt.subplot2grid((6, 4), (0, 0), rowspan=6, colspan=4, axisbg=GRAPH_BG)
                 for i, list in enumerate(self.data):
                      if(GraphParam==self.data[i][0]):
-                         #print(GraphParam)
                          tempList = self.data[i][1:]
                          #print(tempList)
 
@@ -539,18 +541,25 @@ class StartPage(tk.Frame):
         self.Imglable.pack(anchor="center")
 
     def callback(self, path):
-        try:
+        #try:
             print("Refreshing Image")
+            #imgcv = cv.imread(path)
+            #b, g, r = cv.split(imgcv)
+            #imgcv = cv.merge((r, g, b))
+            #im = Image.fromarray(imgcv)
+            #Img = ImageTk.PhotoImage(image=im)
+
             fhandle = Image.open(path)
             Img = ImageTk.PhotoImage(fhandle, master=self.ImgFrame)
-            #ImgFrame.create_image((0,0), image=Img, state="normal",anchor="center")
             fhandle.close()
+            #ImgFrame.create_image((0,0), image=Img, state="normal",anchor="center")
             self.ImgFrame.image = Img
             self.Imglable.configure(image=Img)
-        except:
-            print("Image not found! Or corrupted :(")
-            self.ImgFrame.image = 0
-            pass
+        #except:
+            #print(sys.exc_info()[0])
+            #print("Image not found! Or corrupted :(")
+            #self.ImgFrame.image = 0
+            #pass
 
 
 
@@ -675,7 +684,7 @@ def SerialComm(port):
     try:
         # print("thread start")
         serialObj = serial.Serial(port=port,
-                                  baudrate=9600,
+                                  baudrate=57600,
                                   parity=serial.PARITY_NONE,
                                   stopbits=serial.STOPBITS_ONE,
                                   bytesize=serial.EIGHTBITS,
@@ -732,22 +741,25 @@ def SerialComm(port):
                         imgBytelist = []
 
                         while (True):
+                            if(serialObj.inWaiting()):
+                                dat = serialObj.read()
+                                if(dat is not ""):
+                                    img.write(dat)
+                                    imgBytelist.append(dat)
+                                    print (len(imgBytelist),' Bytes ')
+                                    try:
+                                        if(len(imgBytelist) > int(length)+2000):
+                                            print("Image Recieved")
+                                            serialObj.flushInput()
+                                            serialObj.flushOutput()
+                                            img.close()
+                                            break
 
-                            dat = serialObj.read()
-                            img.write(dat)
 
-                            imgBytelist.append(dat)
-                            print(len(imgBytelist))
-                            try:
-                                if(len(imgBytelist) >= int(str(length))+10):
-                                    print("Image Recieved")
-
-                                    img.close()
-                                    break
-                            except:
-                                img.close()
-                                print(sys.exc_info()[0])
-                                break
+                                    except:
+                                        img.close()
+                                        print(sys.exc_info()[0])
+                                        break
 
                     serialq.put(serialData, 0)
                     serialObj.flushInput()
@@ -810,7 +822,7 @@ def FileParse():  # will eventually allow any text file to be parsed and graphed
     getData = fo2.read()
     fo2.close()
 
-    lines = getData.split('\n')
+    lines = getData.split('\r')
     #Headers = parse_serial(lines[0])
     Headers = lines[0].split(",")
     #print(Headers)
@@ -833,7 +845,7 @@ def FileParse():  # will eventually allow any text file to be parsed and graphed
                 data[j-1].append(dataPoints[j-1])
             #print(data)
             # #######-------------------########## working here.
-    #print(data)
+
 
     return data
 

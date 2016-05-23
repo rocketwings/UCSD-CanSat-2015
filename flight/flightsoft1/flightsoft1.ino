@@ -26,6 +26,8 @@
 
 #define RELEASE 'r'
 #define TAKE_PIC 'c'
+#define SEND_BUFF_LENGTH 64
+
 //--------------
 // State Params
 //--------------
@@ -43,7 +45,7 @@ unsigned long int timeSync = 0;
 unsigned long int timeCheck = 0;
 
 SoftwareSerial Bridge(11,9); //Rx, Tx this will be the serial bridge between the two microcontrollers
-SoftwareSerial Xbee(8,4); // Rx,Tx subject to change.
+SoftwareSerial Xbee(8,5); // Rx,Tx subject to change.
 
 //cam
 Adafruit_VC0706 cam = Adafruit_VC0706(&Serial1);
@@ -59,15 +61,15 @@ void setup() {
   digitalWrite(RESETMICRO, HIGH);
   delay(2000);
 	// Serial for debug
-	Serial.begin(BAUD);
+	Serial.begin(57600);
   Serial1.begin(115200);
   //while (!Serial) {
     // wait for serial port to connect. Needed for Leonardo only
   //}
 	//bridge setup
-	Bridge.begin(BAUD);
+	Bridge.begin(57600);
 	//xbee setup
-	Xbee.begin(BAUD);
+	Xbee.begin(57600);
   Serial.println("...Xbee initialized!");
 	//SD setup
 	Serial.print("SD card setup...");
@@ -121,13 +123,13 @@ void setup() {
 
 void loop() { 
   //Serial.println("sadfasdf");       
-  //parseSend();
+  parseSend();
   checkCmd();
   //delay(5000);
   //Serial.println("Attempting Taking Pic");
   //snapshot();
   //while(1);
-  delay(10);
+  //delay(10);
 }
 
 
@@ -139,16 +141,18 @@ void loop() {
 void parseSend(){
   //Parses Bridge and sends it out to Xbee
   Bridge.listen();
-	if(Bridge.available()){
-    Serial.println("Lin is a hero");
+	while(Bridge.isListening() && Bridge.available()){
+    //Serial.println("Lin is a hero");
 		char buff[100]={'\0'};
 		int commas[15]={0};
 		int j = 0;
+    delay(10);
 		Bridge.readBytesUntil('\n',buff,100);
-   
+    //Bridge.flush();
     Xbee.println(buff);
-    
-    Bridge.flush();
+    Serial.println(buff);
+   Xbee.listen();
+    //Bridge.flush();
 		for(int i=0;i<100;i++){
 			if(buff[i] == ','){
 				commas[j] = i;
@@ -202,8 +206,7 @@ unsigned long time(){
 
 
 void checkCmd(){
-  Xbee.listen();
-	if(Xbee.available()){
+	if(Xbee.isListening() && Xbee.available()){
 		char cmd = Xbee.read();
     Serial.println(cmd);
    
@@ -300,17 +303,18 @@ int sendPic(char *fileName,uint16_t jpglen) {
   }
   Serial.println("sending picture");
   Serial.println(jpglen,DEC);
+  delay(1000);
   Xbee.println("sending picture");
   Xbee.println(jpglen,DEC);
-  delay(1000);
-  byte buffer[256];
+  byte buffer[SEND_BUFF_LENGTH];
   while(readFile.available())  {
-    for(int i=0; i<256; i++) {
+    for(int i=0; i<SEND_BUFF_LENGTH; i++) {
       buffer[i] = readFile.read();
     }
-    Xbee.write(buffer,256);
+    Xbee.write(buffer,SEND_BUFF_LENGTH);
     Serial.print(".");
   }
+  Xbee.flush();
   Serial.print("\nDone.\n");
   return(0);
 }
