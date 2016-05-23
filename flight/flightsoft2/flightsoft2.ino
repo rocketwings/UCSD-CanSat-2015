@@ -1,8 +1,7 @@
 /*
- * Goes on the RED sparkfun micro
+ * Goes on RED pro-micro
  * 
  */
-
 
 #include <Wire.h>
 #include <LSM303.h>
@@ -14,7 +13,7 @@
 
 #include "defStructs.h"
 
-#define GPSECHO  true
+#define GPSECHO true
 #define BAUD 9600
 #define TIME_TOL  1  //time tolerance in percent
 #define SEND_PER  1000  //send period in milliseconds
@@ -57,7 +56,7 @@ LSM303 compass;
 SoftwareSerial Bridge(9,8); //Rx, Tx this will be the serial bridge between the two microcontrollers
 
 Adafruit_GPS GPS(&Serial1);
-
+HardwareSerial mySerial = Serial1;
 //float FakeGPS[5] = {1, 1, 1, 1, 1};
 //float gpsData[5] = {-1, -1, -1, -1, -1};
 
@@ -74,24 +73,29 @@ void useInterrupt(boolean);//prototype function
 void setup() {
   // initialize serial communication at BAUD bits per second:
   //
-  Serial.begin(9600);
-  //while (!Serial) {
+  Serial.begin(57600);
+  //while (!Serial) 
     // wait for serial port to connect. Needed for Leonardo only
-  //}
-	//Ini Bridge
-  Bridge.begin(9600);
+  
+  //Ini Bridge
+  Bridge.begin(57600);
   Serial.println("Bridge initialized");
-	//GPS
+  //GPS
+  
   GPS.begin(9600);
+  delay(1);
   Serial.println("GPS initialized");
   GPS.sendCommand(PMTK_SET_NMEA_OUTPUT_RMCGGA);
+  delay(1);
   Serial.println("GPS initialized");
   GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
+  delay(1);
   Serial.println("GPS initialized");
-  useInterrupt(true);
+  
+  delay(1);
   Serial.println("GPS initialized");
   //-------------
-  	
+  delay(1);  
   Serial.println("lkdsfoijewaflkjfds");
   Wire.begin();
 
@@ -112,19 +116,17 @@ void setup() {
   compass.enableDefault();
   Serial.println("lkdsfoijewaflkjfds2");
   pinMode(PITOT_PIN, INPUT);
-  
+
+  useInterrupt(false);
   
   //while(1);
-  //delay(1000);
+  delay(1000);
 }
 
-//----------------------------------------------------
-// the loop routine runs over and over again forever:
-//----------------------------------------------------
 
-void loop() {        
+void loop() {
   getData(pos);
-	
+  
   freqLimiter(pos);
   static bool filled = false;
  
@@ -143,60 +145,33 @@ void loop() {
   //Serial.println(pos);
   //delay(500); 
   pos++;
-  
+
 }
 
-//----------------------------------------------------
-// functions
-//----------------------------------------------------
-/*
-void logData(int pos)
-{
-   File logFile = SD.open("telemetry.txt", FILE_WRITE);
-   if(logFile)
-   {
-			logFile.print(TEAM_ID); //team ID
-			logFile.print(",");
-			logFile.print(packet_count); 
-			logFile.print(",");
-			logFile.print(avg[pos].altitude);
-			logFile.print(",");
-			logFile.print(avg[pos].pressure);
-			logFile.print(",");
-			logFile.print(avg[pos].airspeed);
-			logFile.print(",");
-			logFile.print(avg[pos].temp);
-			logFile.print(",");
-			logFile.print(data[pos].voltage);
-			logFile.print(",");
-			logFile.print(data[pos].latitude); //latitude
-			logFile.print(",");
-			logFile.print(data[pos].longitude);//longitude
-			logFile.print(",");
-			logFile.print(data[pos].gpsalt);//altitude
-			logFile.print(",");
-			logFile.print(data[pos].satnum);// sat num
-			logFile.print(",");
-			logFile.print(data[pos].gpsspeed);// gps speed
-			logFile.print(",");
-			logFile.print(data[pos].time);// time
-			logFile.print(",");
-			logFile.print(data[pos].imgcmdTime);// time of last imaging command
-			logFile.print(",");
-			logFile.print(data[pos].imgcmdCount);// number of imaging commands
-			logFile.print(",");
-			logFile.println(data[pos].bonus); //bonus data if applicable
-			logFile.close();
-   }
-		else Serial.println("Error opening file! NOOOOO!!!!!!");
-		return;
+void freqLimiter(int pos){
+  this_send = millis();
+  if (this_send - last_send > .5*SEND_PER)  {
+    if (this_send%1000 < TIME_TOL*SEND_PER/100. || this_send%1000 > (100-TIME_TOL)*SEND_PER/100)  {
+      last_send = this_send;
+      packet_count++;
+      
+      //logData(pos);   
+      //xbeeSend(pos);
+      bridgeSend(pos);
+      //serialMonitor(pos);
+      
+    }
+  }
+  else  {
+    delay(1);        // delay in between reads for stability
+  }
 }
-*/
+
 void getData(int pos){
-	// read data
+  // read data
   
   // pololu
-	data[pos].pressure = ps.readPressureMillibars();
+  data[pos].pressure = ps.readPressureMillibars();
   data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure);
   data[pos].temp = ps.readTemperatureC();
 
@@ -206,9 +181,10 @@ void getData(int pos){
 //  data[pos].compass_az = compass.a.z;
 
   //pitot
-	pitotRead = analogRead(PITOT_PIN);
+  pitotRead = analogRead(PITOT_PIN);
   data[pos].airspeed = sqrt(2000.*(((pitotRead-PITOT_CAL)/(0.2*1024.0))-2.5)/1.225);
-	//GPS
+  
+  //GPS
   if (! usingInterrupt) {
     // read data from the GPS in the 'main loop'
     char c = GPS.read();
@@ -230,90 +206,44 @@ void getData(int pos){
   static unsigned long GPStime = GPS.hour * (1000*60*60) + GPS.minute * (1000*60) + GPS.seconds * (1000) + GPS.milliseconds;
   missionTime = millis() + GPStime;
   //--------------------------------------------------------------
-	//GPS.latitude = gpsData[0];
-	//GPS.longitude = gpsData[1];
-	//GPS.altitude = gpsData[2];
-	//GPS.satellites = gpsData[3];
-	//GPS.speed = gpsData[4];
-	//put rest of gps code here
 
   //camera and params (params if requested.)
   getBridge();
 }
 
-void serialMonitor(int pos){
-  /*
-	Serial.print(TEAM_ID); //team ID
-	Serial.print(",");
-	Serial.print(packet_count); 
-	Serial.print(",");
-	Serial.print(data[pos].altitude);
-	Serial.print(",");
-	Serial.print(data[pos].pressure);
-	Serial.print(",");
-	Serial.print(avg[pos].airspeed);
-	Serial.print(",");
-	Serial.print(data[pos].temp);
-	Serial.print(",");
-	Serial.print(data[pos].voltage);
-	Serial.print(",");
-	Serial.print(GPS.latitude); //latitude
-  Serial.print(",");
-  Serial.print(GPS.longitude);//longitude
-  Serial.print(",");
-  Serial.print(GPS.altitude);//altitude
-  Serial.print(",");
-  Serial.print(GPS.satellites);// sat num
-  Serial.print(",");
-  Serial.print(GPS.speed);// gps speed
-  Serial.print(",");
-	Serial.print(missionTime);// time
-	Serial.print(",");
-	Serial.print(imgCmdTime);// time of last imaging command
-	Serial.print(",");
-	Serial.print(imgCmdCount);// number of imaging commands
-	Serial.print(",");
-	Serial.print(data[pos].bonus);
-  Serial.print("\n");
-  //Serial.print((int)&GPS.latitude);
-  //Serial.print('\t');
-  //Serial.print((int)&data[pos].temp);
-  //Serial.print("\n");
-  */
-}
-
 void bridgeSend(int pos){
-	Bridge.print(TEAM_ID); //team ID
-	Bridge.print(",");
-	Bridge.print(packet_count); 
-	Bridge.print(",");
-	Bridge.print(avg[pos].altitude,2);
-	Bridge.print(",");
-	Bridge.print(avg[pos].pressure,2);
-	Bridge.print(",");
-	Bridge.print(avg[pos].airspeed,2);
-	Bridge.print(",");
-	Bridge.print(avg[pos].temp,2);
-	Bridge.print(",");
-	Bridge.print(data[pos].voltage,2);
-	Bridge.print(",");
-	Bridge.print(GPS.latitude); //latitude
-	Bridge.print(",");
-	Bridge.print(GPS.longitude);//longitude
-	Bridge.print(",");
-	Bridge.print(GPS.altitude);//altitude
-	Bridge.print(",");
-	Bridge.print(GPS.satellites);// sat num
-	Bridge.print(",");
-	Bridge.print(GPS.speed);// gps speed
-	Bridge.print(",");
-	Bridge.print(missionTime);// time
-	Bridge.print(",");
-	// State Params
-	Bridge.print(launched);// time of last imaging command
-	Bridge.print(released);// number of imaging commands
-	Bridge.print(reachAlt);
-	Bridge.print(GPSlock);
+  //Bridge.flush();
+  Bridge.print(TEAM_ID); //team ID
+  Bridge.print(",");
+  Bridge.print(packet_count); 
+  Bridge.print(",");
+  Bridge.print(avg[pos].altitude,2);
+  Bridge.print(",");
+  Bridge.print(avg[pos].pressure,2);
+  Bridge.print(",");
+  Bridge.print(avg[pos].airspeed,2);
+  Bridge.print(",");
+  Bridge.print(avg[pos].temp,2);
+  Bridge.print(",");
+  Bridge.print(data[pos].voltage,2);
+  Bridge.print(",");
+  Bridge.print(GPS.latitude); //latitude
+  Bridge.print(",");
+  Bridge.print(GPS.longitude);//longitude
+  Bridge.print(",");
+  Bridge.print(GPS.altitude);//altitude
+  Bridge.print(",");
+  Bridge.print(GPS.satellites);// sat num
+  Bridge.print(",");
+  Bridge.print(GPS.speed);// gps speed
+  Bridge.print(",");
+  Bridge.print(missionTime);// time
+  Bridge.print(",");
+  // State Params
+  Bridge.print(launched);// time of last imaging command
+  Bridge.print(released);// number of imaging commands
+  Bridge.print(reachAlt);
+  Bridge.print(GPSlock);
   Bridge.print("\n");
 
   Serial.print(TEAM_ID); //team ID
@@ -350,78 +280,59 @@ void bridgeSend(int pos){
   Serial.print("\n");
 }
 
-void freqLimiter(int pos){
-	this_send = millis();
-  if (this_send - last_send > .5*SEND_PER)  {
-    if (this_send%1000 < TIME_TOL*SEND_PER/100. || this_send%1000 > (100-TIME_TOL)*SEND_PER/100)  {
-			last_send = this_send;
-      packet_count++;
-			
-			//logData(pos);		
-			//xbeeSend(pos);
-      bridgeSend(pos);
-			serialMonitor(pos);
-      
-		}
-	}
-	else  {
-    delay(1);        // delay in between reads for stability
-  }
-}
-
 void avgGenerator(int pos){
   avg[pos] = {0};
-	
-	for(int i = 0; i < DATA_LENGTH ; i++){
-		avg[pos].pressure = avg[pos].pressure+data[i].pressure;
-		avg[pos].temp = avg[pos].temp+data[i].temp;
-		avg[pos].altitude = avg[pos].altitude+data[i].altitude;
-		avg[pos].airspeed = avg[pos].airspeed+data[i].airspeed;
-	}
-	avg[pos].pressure /=  DATA_LENGTH;
-	avg[pos].temp /= DATA_LENGTH;
-	avg[pos].altitude /= DATA_LENGTH;
-	avg[pos].airspeed /= DATA_LENGTH;	
+  
+  for(int i = 0; i < DATA_LENGTH ; i++){
+    avg[pos].pressure = avg[pos].pressure+data[i].pressure;
+    avg[pos].temp = avg[pos].temp+data[i].temp;
+    avg[pos].altitude = avg[pos].altitude+data[i].altitude;
+    avg[pos].airspeed = avg[pos].airspeed+data[i].airspeed;
+  }
+  avg[pos].pressure /=  DATA_LENGTH;
+  avg[pos].temp /= DATA_LENGTH;
+  avg[pos].altitude /= DATA_LENGTH;
+  avg[pos].airspeed /= DATA_LENGTH; 
 }
 
 void releaseTrigger(int pos){
-	if(avg[pos].altitude >= RELEASE_ALTITUDE){
-		reachAlt = true;
-	}
-	if(launched && reachAlt){
-		if(avg[pos].altitude <= RELEASE_ALTITUDE){
-			// Release code analogWrite(LED_PIN, 127);
-		}
-	}
+  if(avg[pos].altitude >= RELEASE_ALTITUDE){
+    reachAlt = true;
+  }
+  if(launched && reachAlt){
+    if(avg[pos].altitude <= RELEASE_ALTITUDE){
+      // Release code analogWrite(LED_PIN, 127);
+    }
+  }
 }
 
 float launchIndicator(){
-	float slope = 0.0;
-	float sumAlt = 0.0;
-	float sumAlt2 = 0.0;
-	float sumTime = 0.0;
-	float sumTtime2 = 0.0;
-	float crossSum = 0.0;
-	
-	for(int n=0; n<AVG_LENGTH; n++){
-		sumAlt += avg[n].altitude;
-		sumAlt2 += avg[n].altitude * avg[n].altitude;
-		sumTime += float((missionTime/1000));
-		sumTtime2 += float((missionTime/1000) * (missionTime/1000));
-		crossSum += float(missionTime/1000) * avg[n].altitude;
-	}
-	
-	slope = (AVG_LENGTH * crossSum - sumAlt*sumTime)/(AVG_LENGTH * sumTtime2 - sumTime * sumTime);
-	
-	if (slope >= LAUNCH_VELOCITY){
-		launched = true;
-	}
-	
-	return slope;
+  float slope = 0.0;
+  float sumAlt = 0.0;
+  float sumAlt2 = 0.0;
+  float sumTime = 0.0;
+  float sumTtime2 = 0.0;
+  float crossSum = 0.0;
+  
+  for(int n=0; n<AVG_LENGTH; n++){
+    sumAlt += avg[n].altitude;
+    sumAlt2 += avg[n].altitude * avg[n].altitude;
+    sumTime += float((missionTime/1000));
+    sumTtime2 += float((missionTime/1000) * (missionTime/1000));
+    crossSum += float(missionTime/1000) * avg[n].altitude;
+  }
+  
+  slope = (AVG_LENGTH * crossSum - sumAlt*sumTime)/(AVG_LENGTH * sumTtime2 - sumTime * sumTime);
+  
+  if (slope >= LAUNCH_VELOCITY){
+    launched = true;
+  }
+  
+  return slope;
 }
 
 void getBridge(){
-	// will set state variables and get necessary data from other arduino. (SD card to serial bridge)
+  // will set state variables and get necessary data from other arduino. (SD card to serial bridge)
   if(Bridge.available()){
     char buff[25] = {'\0'};
     Bridge.readBytesUntil('\n',buff,25);
@@ -479,10 +390,5 @@ void useInterrupt(boolean v) {
     TIMSK0 &= ~_BV(OCIE0A);
     usingInterrupt = false;
   }
-}
-
-void releaseSat(){
-  //Release code here
-  
 }
 
