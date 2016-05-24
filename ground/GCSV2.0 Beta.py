@@ -722,7 +722,9 @@ def SerialComm(port):
 
             if (sendq.empty() == False):
                 temp = sendq.get(0)
-                serialObj.write(temp)
+                for i in range(50):
+                    serialObj.write(temp)
+                    time.sleep(0.02)
                 #print(temp)
             #serialObj.write("Hello!")
             try:
@@ -743,23 +745,22 @@ def SerialComm(port):
                         while (True):
                             if(serialObj.inWaiting()):
                                 dat = serialObj.read()
-                                if(dat is not ""):
-                                    img.write(dat)
-                                    imgBytelist.append(dat)
-                                    print (len(imgBytelist),' Bytes ')
-                                    try:
-                                        if(len(imgBytelist) > int(length)+2000):
-                                            print("Image Recieved")
-                                            serialObj.flushInput()
-                                            serialObj.flushOutput()
-                                            img.close()
-                                            break
-
-
-                                    except:
+                                img.write(dat)
+                                imgBytelist.append(dat)
+                                print (len(imgBytelist),' Bytes ')
+                                try:
+                                    if(len(imgBytelist) > int(length)):
+                                        print("Image Recieved")
+                                        serialObj.flushInput()
+                                        serialObj.flushOutput()
                                         img.close()
-                                        print(sys.exc_info()[0])
                                         break
+
+
+                                except:
+                                    img.close()
+                                    print(sys.exc_info()[0])
+                                    break
 
                     serialq.put(serialData, 0)
                     serialObj.flushInput()
