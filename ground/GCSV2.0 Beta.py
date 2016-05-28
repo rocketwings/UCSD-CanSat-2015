@@ -374,8 +374,6 @@ class MainWindow(tk.Tk):
             ob.frames[PageThree].canvas.show()
 
 
-
-
 class PageThree(tk.Frame):
     # creates the main page, was called page three may change name later
     # contains all the GUI elements of the plot page
@@ -524,21 +522,48 @@ class StartPage(tk.Frame):
     # creates a blank start page may be used later for something
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        self.configure(bg="white", highlightcolor="white", highlightbackground="white")
+        self.configure(bg=PADDING_COLOR, highlightcolor=PADDING_COLOR, highlightbackground=PADDING_COLOR)
+        self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1)
-        label = tk.Label(self, text="Image", font=LARGE_FONT)
-        label.grid(row=0,column=0,columnspan=2,pady=10, padx=10)
 
-        button3 = ttk.Button(self, text="To Graph",
+
+        buttonsFrame = tk.Frame(self, relief=tk.SUNKEN, bd=1)
+        buttonsFrame.configure(bg=BACKGROUND_COLOR, highlightcolor=BACKGROUND_COLOR,
+                               highlightbackground=BACKGROUND_COLOR)
+        buttonsFrame.grid(row=0, column=1, sticky='NS', pady=5.2, padx=2)
+
+        #label = tk.Label(self, text="Image", font=LARGE_FONT, bg="#000000",fg="#FFFFFF")
+        #label.grid(row=0,column=0,columnspan=2,pady=10, padx=10)
+
+        button1 = ttk.Button(buttonsFrame, text="To Graph",
                              command=lambda: controller.show_frame(PageThree))
-        button3.grid(row=1,column=0,columnspan=2,pady=10, padx=10)
+        button1.grid(row=0,column=0,columnspan=1,pady=10, padx=10)
 
 
         path = JPG_NAME
         self.ImgFrame = tk.Frame(self)
-        self.ImgFrame.grid(row=2, column=0, columnspan=2)
-        self.Imglable = tk.Label(self.ImgFrame, bg="#000000", fg="#FFFFFF", text="Press Enter to load recieved image")
-        self.Imglable.pack(anchor="center")
+        self.ImgFrame.configure(bg=BACKGROUND_COLOR,
+                                highlightcolor=BACKGROUND_COLOR,
+                                highlightbackground=BACKGROUND_COLOR,
+                                relief=tk.SUNKEN,
+                                padx=5, pady=5,
+                                bd=1)
+        #self.ImgFrame.grid_columnconfigure(0,weight=1)
+        #self.ImgFrame.grid_rowconfigure(0, weight=1)
+
+        self.ImgFrame.grid(row=0, column=0, padx=5,pady=5,sticky='nsew')
+        self.ImgFrame.grid_columnconfigure(0, weight=1)
+        self.ImgFrame.grid_rowconfigure(0, weight=1)
+        self.Imglable = tk.Label(self.ImgFrame,
+                                 bg=PADDING_COLOR,
+                                 fg="#FFFFFF",
+                                 text="Press Enter to load recieved image",
+                                 relief=tk.RAISED,
+                                 bd=1,
+                                 padx=50,
+                                 pady=50)
+
+        self.Imglable.grid(row=0,column=0,padx=5,pady=5)
 
     def callback(self, path):
         #try:

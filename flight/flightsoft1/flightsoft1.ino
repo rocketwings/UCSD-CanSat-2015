@@ -27,6 +27,7 @@
 #define RELEASE 'r'
 #define TAKE_PIC 'c'
 #define SEND_BUFF_LENGTH 64
+#define BUZZER_PIN 7
 
 //--------------
 // State Params
@@ -43,6 +44,7 @@ int pos = 0;
 int camCmdCount = 0;
 unsigned long int timeSync = 0;
 unsigned long int timeCheck = 0;
+unsigned long int camCmdTime = 0;
 
 SoftwareSerial Bridge(11,9); //Rx, Tx this will be the serial bridge between the two microcontrollers
 SoftwareSerial Xbee(8,5); // Rx,Tx subject to change.
@@ -93,6 +95,10 @@ void setup() {
   }
   Serial.println("Cam");
   cam.setImageSize(VC0706_640x480);
+
+  Serial.print("Getting, setting, and sending params from SD to RED...");
+  getSetSendParamsSD();
+  Serial.println("Done.");
   
   //-----------
   
@@ -159,7 +165,7 @@ void parseSend(){
 				j++;
 			}
       if(buff[0] == 'p'){
-        getSetSendParams();
+        getSetSendParamsSD();
         break;
       }
 		}
@@ -240,7 +246,9 @@ void snapshot(){
   uint16_t len = LogPic();
   char fileName[] = "IMAGE00.JPG";
   sendPic(fileName, len);
-  
+  camCmdCount++;
+  camCmdTime = time();
+  sendCamInfo();
 }
 
 uint16_t LogPic () {
@@ -320,6 +328,7 @@ int sendPic(char *fileName,uint16_t jpglen) {
 }
 
 void saveParams(){
+  // Saves state parameters and camera info
 	if(SD.exists("param")){
 		SD.remove("param");
 	}
@@ -332,6 +341,7 @@ void saveParams(){
       params.print(",");
       params.print(camCmdCount);
       params.print(",");
+      params.print(camCmdTime);
       //------------------------asdfasdfasdf--------------
 			params.close();
 		}
@@ -340,13 +350,20 @@ void saveParams(){
 	}
 }
 
-void getSetSendParams(){
+void getSetSendParamsSD(){
+  //Gets params from SD and sends em over to RED
   if(SD.exists("param")){
     File params = SD.open("param",FILE_READ);
     if(params){
-      char buff[5] = {'\0'};
-      params.readBytesUntil('\n',buff,5);
+      char buff[25] = {'\0'};
+      int comma = 0;
+      params.readBytesUntil('\n',buff,25);
       params.close();
+      for(int i=0;i<25;i++){
+        if(buff[i]==','){
+          comma=i;
+        }
+      }
       if(buff[0]=='1'){
         launched = true;          
       }
@@ -367,13 +384,49 @@ void getSetSendParams(){
       Bridge.print(launched);
       Bridge.print(released);
       Bridge.print(reachAlt);
-      Bridge.println(GPSlock);     
+      Bridge.print(GPSlock);
+      Bridge.println();
+
+      Bridge.print("c");
+      for(int i=4;buff[i];i++){
+        Bridge.print(buff[i]);     
+      }
+      Bridge.println();
     }
+   else{
+      Serial.print("No param file");
+      Bridge.print("p");
+      Bridge.print(launched);
+      Bridge.print(released);
+      Bridge.print(reachAlt);
+      Bridge.print(GPSlock);
+      Bridge.println();
+      
+      Bridge.print("c");
+      Bridge.print(0);
+      Bridge.print(",");
+      Bridge.print(0);
+      Bridge.println();
+   }
   }
 } 
-  
+
+void sendCamInfo(){
+  Bridge.print("c");
+  Bridge.print(camCmdCount);
+  Bridge.print(",");
+  Bridge.print(camCmdTime);
+  Bridge.println();
+}
+
 void releaseSat(){
 //put release code here
   
 }
+
+void buzzer(){
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN,HIGH); 
+}
+
 

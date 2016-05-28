@@ -28,6 +28,7 @@
 #define TEAM_ID "123456" // Team ID REMEMBER TO CHANGE THIS TOO LAZY TO LOOK UP
 
 #define LAUNCH_VELOCITY 100
+#define LAUNCHED_ALT_THRESHOLD 200
 
 //--------------
 // State Params
@@ -117,6 +118,12 @@ void setup() {
   Serial.println("lkdsfoijewaflkjfds2");
   pinMode(PITOT_PIN, INPUT);
 
+  while(!Bridge.available()){
+    Serial.println("Waiting for state...");
+  }
+  getBridge();
+  Serial.println("State Initialized.");
+  
   useInterrupt(false);
   
   //while(1);
@@ -172,7 +179,8 @@ void getData(int pos){
   
   // pololu
   data[pos].pressure = ps.readPressureMillibars();
-  data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure);
+  static float baseAlt = ps.pressureToAltitudeMeters(data[pos].pressure);
+  data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure) - baseAlt;
   data[pos].temp = ps.readTemperatureC();
 
 //  compass.read();
@@ -215,6 +223,8 @@ void bridgeSend(int pos){
   //Bridge.flush();
   Bridge.print(TEAM_ID); //team ID
   Bridge.print(",");
+  Bridge.print(missionTime);// time
+  Bridge.print(",");
   Bridge.print(packet_count); 
   Bridge.print(",");
   Bridge.print(avg[pos].altitude,2);
@@ -237,7 +247,9 @@ void bridgeSend(int pos){
   Bridge.print(",");
   Bridge.print(GPS.speed);// gps speed
   Bridge.print(",");
-  Bridge.print(missionTime);// time
+  Bridge.print(imgCmdTime);
+  Bridge.print(",");
+  Bridge.print(imgCmdCount);
   Bridge.print(",");
   // State Params
   Bridge.print(launched);// time of last imaging command
@@ -247,6 +259,8 @@ void bridgeSend(int pos){
   Bridge.print("\n");
 
   Serial.print(TEAM_ID); //team ID
+  Serial.print(",");
+  Serial.print(missionTime);// time
   Serial.print(",");
   Serial.print(packet_count); 
   Serial.print(",");
@@ -270,11 +284,14 @@ void bridgeSend(int pos){
   Serial.print(",");
   Serial.print(GPS.speed);// gps speed
   Serial.print(",");
-  Serial.print(missionTime);// time
+  Serial.print(imgCmdTime);// time of last imaging command
   Serial.print(",");
+  Serial.print(imgCmdCount);// number of imaging commands
+  Serial.print(",");
+  
   // State Params
-  Serial.print(launched);// time of last imaging command
-  Serial.print(released);// number of imaging commands
+  Serial.print(launched);
+  Serial.print(released);
   Serial.print(reachAlt);
   Serial.print(GPSlock);
   Serial.print("\n");
@@ -324,16 +341,16 @@ float launchIndicator(){
   
   slope = (AVG_LENGTH * crossSum - sumAlt*sumTime)/(AVG_LENGTH * sumTtime2 - sumTime * sumTime);
   
-  if (slope >= LAUNCH_VELOCITY){
+  if (slope >= LAUNCH_VELOCITY && avg[pos].altitude >= LAUNCHED_ALT_THRESHOLD){
     launched = true;
   }
-  
   return slope;
 }
 
 void getBridge(){
   // will set state variables and get necessary data from other arduino. (SD card to serial bridge)
-  if(Bridge.available()){
+  Bridge.listen();
+  while(Bridge.available()){
     char buff[25] = {'\0'};
     Bridge.readBytesUntil('\n',buff,25);
     if(buff[0] == 'p'){
@@ -361,8 +378,8 @@ void getBridge(){
           comma = i;
         }
       }
-    imgCmdCount = atoi(buff+1);
-    imgCmdTime = strtoul(buff+comma,NULL,10); 
+      imgCmdCount = atoi(buff+1);
+      imgCmdTime = strtoul(buff+comma,NULL,10); 
     }
   }
 }
