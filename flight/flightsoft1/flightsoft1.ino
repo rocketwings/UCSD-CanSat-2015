@@ -1,4 +1,4 @@
-/*
+  /*
  * Goes on the BLUE pro-micro
  *
  */
@@ -41,10 +41,10 @@ boolean GPSlock = false; //boolean for if cansat has a gps lock
 //--------------
 
 int pos = 0;
-int camCmdCount = 0;
+int camCmdCount = -1;
 unsigned long int timeSync = 0;
 unsigned long int timeCheck = 0;
-unsigned long int camCmdTime = 0;
+unsigned long int camCmdTime = 555;
 
 SoftwareSerial Bridge(11,9); //Rx, Tx this will be the serial bridge between the two microcontrollers
 SoftwareSerial Xbee(8,5); // Rx,Tx subject to change.
@@ -97,7 +97,10 @@ void setup() {
   cam.setImageSize(VC0706_640x480);
 
   Serial.print("Getting, setting, and sending params from SD to RED...");
-  getSetSendParamsSD();
+  Bridge.listen();
+  while(!Bridge.available()){
+    getSetSendParamsSD();
+  }
   Serial.println("Done.");
   
   //-----------
@@ -131,6 +134,7 @@ void loop() {
   //Serial.println("sadfasdf");       
   parseSend();
   checkCmd();
+  
   //delay(5000);
   //Serial.println("Attempting Taking Pic");
   //snapshot();
@@ -219,12 +223,6 @@ void checkCmd(){
 		if(cmd == TAKE_PIC){
       Serial.println("IMAGE CMD");
 			snapshot();
-			
-      camCmdCount ++;
-      Bridge.print("c");
-      Bridge.print(camCmdCount);
-      Bridge.print(",");
-      Bridge.println(time());
 		}
 		
 		if(cmd == RELEASE){
@@ -329,8 +327,8 @@ int sendPic(char *fileName,uint16_t jpglen) {
 
 void saveParams(){
   // Saves state parameters and camera info
-	if(SD.exists("param")){
-		SD.remove("param");
+	if(SD.exists("PARAM")){
+		SD.remove("PARAM");
 	}
 	File params = SD.open("param",FILE_WRITE);
 	if(params){
@@ -338,10 +336,10 @@ void saveParams(){
 			params.print(released);
 			params.print(reachAlt);
 			params.print(GPSlock);
-      params.print(",");
+      //params.print(",");
       params.print(camCmdCount);
       params.print(",");
-      params.print(camCmdTime);
+      params.println(camCmdTime);
       //------------------------asdfasdfasdf--------------
 			params.close();
 		}
@@ -388,7 +386,7 @@ void getSetSendParamsSD(){
       Bridge.println();
 
       Bridge.print("c");
-      for(int i=4;buff[i];i++){
+      for(int i=5;buff[i];i++){
         Bridge.print(buff[i]);     
       }
       Bridge.println();
@@ -412,21 +410,17 @@ void getSetSendParamsSD(){
 } 
 
 void sendCamInfo(){
-  Bridge.print("c");
-  Bridge.print(camCmdCount);
-  Bridge.print(",");
-  Bridge.print(camCmdTime);
-  Bridge.println();
+    Bridge.print("c");
+    Bridge.print(camCmdCount);
+    Bridge.print(",");
+    Bridge.print(camCmdTime);
+    Bridge.println();
 }
 
 void releaseSat(){
-//put release code here
-  
+  Bridge.println("r");
 }
 
-void buzzer(){
-  pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN,HIGH); 
-}
+
 
 
