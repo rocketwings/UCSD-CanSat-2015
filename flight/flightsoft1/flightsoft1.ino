@@ -262,10 +262,13 @@ void checkCmd(){
         }
         else GPSlock = false;
         Bridge.print('p');
-        Bridge.print(buff);
+        Bridge.println(buff);
+        Serial.print('p');
+        Serial.println(buff);
       }
     }
     if(cmd == 'd'){
+      Serial.println("Deleting params file.");
       deleteParams();
     }
 		//add additional cmd checks here if needed.
