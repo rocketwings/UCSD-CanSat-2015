@@ -236,12 +236,38 @@ void checkCmd(){
       Serial.println("IMAGE CMD");
 			snapshot();
 		}
-		
 		if(cmd == RELEASE){
       Serial.println("RELEASE CMD");
 			Bridge.println(RELEASE);
       releaseSat();
 		}
+    if(cmd == 'p'){
+      if(Xbee.available()){
+        char buff[6] = {'\0'};
+        Xbee.readBytesUntil('\n',buff,6);
+        if(buff[0]=='1'){
+          launched = true;          
+        }
+        else launched = false;
+        if(buff[1]=='1'){
+          released = true;          
+        }
+        else released = false;
+        if(buff[2]=='1'){
+          reachAlt = true;          
+        }
+        else reachAlt = false;
+        if(buff[3]=='1'){
+          GPSlock = true;          
+        }
+        else GPSlock = false;
+        Bridge.print('p');
+        Bridge.print(buff);
+      }
+    }
+    if(cmd == 'd'){
+      deleteParams();
+    }
 		//add additional cmd checks here if needed.
 	}
 }
@@ -342,9 +368,9 @@ int sendPic(char *fileName,uint16_t jpglen) {
 
 void saveParams(){
   // Saves state parameters and camera info
-	if(SD.exists("PARAM")){
-		SD.remove("PARAM");
-	}
+  
+	deleteParams();//Delete old before saving new
+ 
 	File params = SD.open("param",FILE_WRITE);
 	if(params){
 			params.print(launched);
@@ -371,6 +397,12 @@ void saveParams(){
 	else{
 		Serial.println("ERROR file could not be opened!");
 	}
+}
+
+void deleteParams(){
+  if(SD.exists("PARAM")){
+    SD.remove("PARAM");
+  }
 }
 
 void getSetSendParamsSD(){
