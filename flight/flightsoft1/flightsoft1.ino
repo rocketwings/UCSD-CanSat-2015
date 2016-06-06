@@ -41,10 +41,11 @@ boolean GPSlock = false; //boolean for if cansat has a gps lock
 //--------------
 
 int pos = 0;
-int camCmdCount = -1;
+int camCmdCount = 0;
 unsigned long int timeSync = 0;
 unsigned long int timeCheck = 0;
-unsigned long int camCmdTime = 555;
+//
+unsigned long int camCmdTime = 0;
 
 SoftwareSerial Bridge(11,9); //Rx, Tx this will be the serial bridge between the two microcontrollers
 SoftwareSerial Xbee(8,5); // Rx,Tx subject to change.
@@ -134,6 +135,7 @@ void loop() {
   //Serial.println("sadfasdf");       
   parseSend();
   checkCmd();
+  //Serial.println(time());
   
   //delay(5000);
   //Serial.println("Attempting Taking Pic");
@@ -174,44 +176,54 @@ void parseSend(){
       }
 		}
     
-		timeCheck = millis();
-		timeSync = strtoul(buff+commas[11]+1,NULL,10);
+		
+		timeSync = strtoul(buff+commas[0]+1,NULL,10);
+    timeCheck = millis();
+    //sendCamInfo();
+   
+    //Serial.println(timeSync);
 				
-		char launchedChar = buff[commas[12]+1];
+		char launchedChar = buff[commas[14]+1];
 		if(launchedChar == '0'){
 			launched = false;
 		}
 		else{
 			launched = true;
 		}
-		char releasedChar = buff[commas[12]+2];
+		char releasedChar = buff[commas[14]+2];
 		if(releasedChar == '0'){
 			released = false;
 		}
 		else{
 			released = true;
 		}
-		char reachedChar = buff[commas[12]+3];
+		char reachedChar = buff[commas[14]+3];
 		if(reachedChar == '0'){
 			reachAlt = false;
 		}
 		else{
 			reachAlt = true;
 		}
-		char GPSlockChar = buff[commas[12]+4];
+		char GPSlockChar = buff[commas[14]+4];
 		if(GPSlockChar == '0'){
 			GPSlock = false;
 		}
 		else{
 			GPSlock = true;
 		}
-		saveParams();
+		
     // send telemetry over xbee
+    saveParams();
+    sendCamInfo();
 	}
+  
 }
 
 unsigned long time(){
-	return millis()-timeCheck+timeSync;
+  
+  unsigned long timeVar = millis()-timeCheck+timeSync;
+	//Serial.println(timeVar);
+	return timeVar;
 }
 
 
@@ -241,17 +253,18 @@ void snapshot(){
     Serial.println("Failed to snap!");
   else 
     Serial.println("Picture taken!");
-  uint16_t len = LogPic();
-  char fileName[] = "IMAGE00.JPG";
+  char fileName[13];
+  uint16_t len = LogPic(fileName);
   sendPic(fileName, len);
+  Serial.println(fileName);
   camCmdCount++;
   camCmdTime = time();
   sendCamInfo();
 }
 
-uint16_t LogPic () {
+uint16_t LogPic (char filename[]) {
     // Create an image with the name IMAGExx.JPG
-  char filename[13];
+  
   strcpy(filename, "IMAGE00.JPG");
   for (int i = 0; i < 100; i++) {
     filename[5] = '0' + i/10;
@@ -261,6 +274,8 @@ uint16_t LogPic () {
       break;
     }
   }
+
+  Serial.println(filename);
   
   // Open the file for writing
   File imgFile = SD.open(filename, FILE_WRITE);
@@ -340,8 +355,18 @@ void saveParams(){
       params.print(camCmdCount);
       params.print(",");
       params.println(camCmdTime);
+      params.close();
+      
+      Serial.print(launched);
+      Serial.print(released);
+      Serial.print(reachAlt);
+      Serial.print(GPSlock);
+      params.print(",");
+      Serial.print(camCmdCount);
+      Serial.print(",");
+      Serial.println(camCmdTime);
       //------------------------asdfasdfasdf--------------
-			params.close();
+			
 		}
 	else{
 		Serial.println("ERROR file could not be opened!");
@@ -357,6 +382,7 @@ void getSetSendParamsSD(){
       int comma = 0;
       params.readBytesUntil('\n',buff,25);
       params.close();
+      Serial.println(buff);
       for(int i=0;i<25;i++){
         if(buff[i]==','){
           comma=i;
