@@ -37,8 +37,9 @@ MEDIUM_FONT = ("Verdana", 10)
 SMALL_FONT = ("Verdana", 8)
 # '%Y %I%M%S'
 TIME_FMT = '%Y %H:%M:%S'
+IMG_TIMEOUT = 15
 JPG_NAME = 'recieved.jpg'
-
+TEAM_ID = "123456"
 ALTITUDE_COLOR = "#00EE76"
 PRESSURE_COLOR = "#00EEEE"
 TEMPERATURE_COLOR = "#FF6103"
@@ -420,23 +421,30 @@ class PageThree(tk.Frame):
                              command=lambda: controller.show_frame(StartPage))
         button3.grid(row=1, column=0, padx=2, pady=0, sticky='nsew')
         button4 = ttk.Button(buttonsFrame,
-                             text="Button 4",
+                             text="Send State",
                              cursor='hand2',
-                             command=lambda: controller.show_frame(StartPage))
+                             command=lambda: SendPacket(self.sendentry.get()+'\n'))
         button4.grid(row=1, column=1, padx=0, pady=0, sticky='nsew')
 
+        sendlabel = tk.Label(buttonsFrame, text="Send State", font=SMALL_FONT)
+        sendlabel.grid(row=2, column=0,columnspan=2,sticky='NS',padx=5,pady=5)
+        sendlabel.configure(bg=BACKGROUND_COLOR, fg=TEXT_COLOR, highlightcolor=BACKGROUND_COLOR,
+                             highlightbackground=BACKGROUND_COLOR)
+        self.sendentry = ttk.Entry(buttonsFrame,width=7)
+        self.sendentry.grid(row=3, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
+
         rangelabel = tk.Label(buttonsFrame, text="Plot Range", font=SMALL_FONT)
-        rangelabel.grid(row=2, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
+        rangelabel.grid(row=4, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
         rangelabel.configure(bg=BACKGROUND_COLOR, fg=TEXT_COLOR, highlightcolor=BACKGROUND_COLOR,
                              highlightbackground=BACKGROUND_COLOR)
         self.rangeentry1 = ttk.Entry(buttonsFrame, width=5)
-        self.rangeentry1.grid(row=3, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
+        self.rangeentry1.grid(row=5, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
         rangebutton = ttk.Button(buttonsFrame, text="Update Range", cursor='hand2', command=self.GetSetPlotRange)
-        rangebutton.grid(row=4, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
+        rangebutton.grid(row=6, column=0, columnspan=2, sticky='NS', padx=5, pady=5)
         # --------------------------------------------------------------------------------------------------------------
 
         mfFrame = tk.Frame(buttonsFrame)
-        mfFrame.grid(row=5, column=0, columnspan=2, sticky='nsew', padx=5, pady=5)
+        mfFrame.grid(row=7, column=0, columnspan=2, sticky='nsew', padx=5, pady=5)
         mfFrame.configure(bg=BACKGROUND_COLOR, highlightcolor=BACKGROUND_COLOR,
                           highlightbackground=BACKGROUND_COLOR)
         mfscrollbar = ttk.Scrollbar(mfFrame)
@@ -767,6 +775,7 @@ def SerialComm(port):
                         img = open(JPG_NAME, "w")
                         imgBytelist = []
 
+                        timePrev = time.time()
                         while (True):
                             if(serialObj.inWaiting()):
                                 dat = serialObj.read()
@@ -774,7 +783,7 @@ def SerialComm(port):
                                 imgBytelist.append(dat)
                                 print (len(imgBytelist),' Bytes ')
                                 try:
-                                    if(len(imgBytelist) > int(length)):
+                                    if(len(imgBytelist) > int(length) or (time.time() - timePrev) >= IMG_TIMEOUT):
                                         print("Image Recieved")
                                         serialObj.flushInput()
                                         serialObj.flushOutput()
@@ -786,9 +795,9 @@ def SerialComm(port):
                                     img.close()
                                     print(sys.exc_info()[0])
                                     break
-
-                    serialq.put(serialData, 0)
-                    serialObj.flushInput()
+                    if(serialData.startswith(TEAM_ID)):
+                        serialq.put(serialData, 0)
+                        serialObj.flushInput()
             except serial.SerialException:
                 print("Serial Failed")
                 return

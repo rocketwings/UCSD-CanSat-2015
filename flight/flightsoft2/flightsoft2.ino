@@ -21,10 +21,10 @@
 #define AVG_LENGTH 10  //length of avg array
 
 #define PITOT_PIN 20//analog pin for pitot tube
-#define PITOT_CAL 31  //calibration for the zero point of the differential pressure
+#define PITOT_CAL 32  //calibration for the zero point of the differential pressure
 
 #define RELEASE_ALTITUDE 400 // altitude set for release of cansat for container in meters
-
+#define RELEASE_TIMEOUT 5000 //timeout for release led after it starts
 #define TEAM_ID "123456" // Team ID REMEMBER TO CHANGE THIS TOO LAZY TO LOOK UP
 
 #define LAUNCH_VELOCITY 10
@@ -49,6 +49,7 @@ boolean GPSlock = false; //boolean for if cansat has a gps lock
 unsigned long last_send = 0; // time of last sending event
 unsigned long this_send = 0;
 unsigned long missionTime = 0;
+
 int imgCmdCount = 0;
 unsigned long imgCmdTime = 0;
 
@@ -130,6 +131,7 @@ void setup() {
   useInterrupt(true);
 
   pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(LED_PIN,OUTPUT);
   digitalWrite(BUZZER_PIN,LOW);
   //delay(100);
   //digitalWrite(BUZZER_PIN,HIGH);
@@ -146,7 +148,8 @@ void setup() {
 
 void loop() {
   getData(pos);
-  releaseSat();
+  //releaseSat();
+  //Serial.println(altSim());
   freqLimiter(pos);
   static bool filled = false;
 
@@ -157,7 +160,11 @@ void loop() {
   if (filled == true) {
     //Serial.println("LIN IS AN ASS");
     avgGenerator(pos);
-    launchIndicator();//try adding accelerometer data as well for detection
+    static bool ran = false;
+    
+    launchIndicatorAlt(pos);
+    stateTrigger(pos);
+    //launchIndicator();//try adding accelerometer data as well for detection
     //Serial.print(avg[pos].airspeed);
     //Serial.print(",");
     //Serial.println(data[pos].airspeed);
@@ -192,9 +199,10 @@ void getData(int pos) {
 
   // pololu
   data[pos].pressure = ps.readPressureMillibars();
-  static float baseAlt = ps.pressureToAltitudeMeters(data[pos].pressure);
-  data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure) - baseAlt;
-  data[pos].temp = ps.readTemperatureC();
+  //static float baseAlt = ps.pressureToAltitudeMeters(data[pos].pressure);
+  //data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure) - baseAlt;
+  data[pos].altitude = altSim();
+  data[pos].temp = ps.readTemperatureF();
 
   //  compass.read();
   //  data[pos].compass_ax = compass.a.x;
@@ -203,8 +211,11 @@ void getData(int pos) {
 
   //pitot
   pitotRead = analogRead(PITOT_PIN);
-  data[pos].airspeed = sqrt(2000.*(((pitotRead - PITOT_CAL) / (0.2 * 1024.0)) - 2.5) / 1.225);
-
+  data[pos].airspeed = sqrt(2000.*((((float)pitotRead - (float)PITOT_CAL) / (0.2 * 1024.0)) - 2.5) / 1.225);
+  if(data[pos].airspeed != data[pos].airspeed){
+    data[pos].airspeed = 0.0;
+    //Serial.println("NAN");
+  }
   //GPS
   if (! usingInterrupt) {
     // read data from the GPS in the 'main loop'
@@ -248,11 +259,11 @@ void bridgeSend(int pos) {
   Bridge.print(",");
   Bridge.print(avg[pos].pressure, 2);
   Bridge.print(",");
-  Bridge.print(avg[pos].airspeed, 2);
+  Bridge.print(data[pos].airspeed, 2);
   Bridge.print(",");
   Bridge.print(avg[pos].temp, 2);
   Bridge.print(",");
-  Bridge.print(data[pos].voltage, 2);
+  Bridge.print(data[pos].voltage, 3);
   Bridge.print(",");
   Bridge.print(GPS.latitude); //latitude
   Bridge.print(",");
@@ -285,9 +296,9 @@ void bridgeSend(int pos) {
   Serial.print(",");
   Serial.print(avg[pos].pressure, 2);
   Serial.print(",");
-  Serial.print(avg[pos].airspeed, 2);
+  Serial.print(data[pos].airspeed, 2);
   Serial.print(",");
-  Serial.print(avg[pos].temp, 2);
+  Serial.print(data[pos].temp, 2);
   Serial.print(",");
   Serial.print(data[pos].voltage, 2);
   Serial.print(",");
@@ -335,10 +346,18 @@ void stateTrigger(int pos) {
   }
   if (launched && reachAlt) {
     if (avg[pos].altitude <= RELEASE_ALTITUDE + 10) {
-      releaseSat();
+      static unsigned long releaseTime = millis(); 
+      static bool ran = false;
+      if(!ran){
+        releaseSat();
+        ran = true;
+      }
+      if(millis() - releaseTime >= RELEASE_TIMEOUT){
+        digitalWrite(LED_PIN,LOW);
+      }
     }
   }
-  if(released && avg[pos].altitude < LAUNCHED_ALT_THRESHOLD){
+  if(released && (avg[pos].altitude < LAUNCHED_ALT_THRESHOLD)){
     buzzer();
   }
 }
@@ -385,6 +404,13 @@ float launchIndicatorAccel() {
   return mag;
 }
 */
+
+void launchIndicatorAlt(int pos){
+  if(data[pos].altitude > LAUNCHED_ALT_THRESHOLD){
+    launched = true;
+  }
+}
+
 void getBridge() {
   // will set state variables and get necessary data from other arduino. (SD card to serial bridge)
   Bridge.listen();
@@ -418,13 +444,14 @@ void getBridge() {
       Serial.println("Cam params Recieved.");
       Serial.println(buff);
       int comma = 0;
-      for (int i; i < 25; i++) {
+      for (int i = 0; i < 25; i++) {
         if (buff[i] == ',') {
           comma = i;
         }
       }
+      //Serial.println(comma);
       imgCmdCount = atoi(buff + 1);
-      imgCmdTime = strtoul(buff + comma, NULL, 10);
+      imgCmdTime = strtoul(buff+comma+1, NULL, 10);
     }
     if (buff[0] == 'r') {
       //For command through Xbee
@@ -463,11 +490,18 @@ void releaseSat() {
   pinMode(LED_PIN, OUTPUT);
   analogWrite(LED_PIN, 127);
   released = true;
+  Serial.println("RELEASING!");
 }
 
 void buzzer() {
+  //commented for now because annoying.
   
-  digitalWrite(BUZZER_PIN, HIGH);
+  static bool ran = false;
+  if(!ran){
+    Serial.println("BUZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ!!!!!!!!!");
+    ran = true;
+    //digitalWrite(BUZZER_PIN, HIGH);
+  }
 }
 
 void getTime(){
@@ -486,5 +520,27 @@ float voltage(){
   //Serial.print(" Volts: ");
   //Serial.println(volt);
   return volt;
+}
+
+float altSim(){
+  static unsigned long timePrevious = millis();
+  static float alt = 0;
+  static bool hit = false;
+  if((millis() - timePrevious) >= 10){
+    timePrevious = millis();
+    if(alt<610 && hit==false){
+      alt+=.8;
+    }
+    
+    else if(alt>=610 || hit){
+      hit = true;
+      alt-=.1;
+      
+      if(alt<0){
+        alt=0;
+      }
+    }
+  }
+  return alt;
 }
 
