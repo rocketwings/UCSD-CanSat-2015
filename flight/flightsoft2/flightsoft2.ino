@@ -428,7 +428,9 @@ void getBridge() {
       if (buff[2] == '1') {
         released = true;
       }
-      else released == false;
+      else released = false;
+      Serial.println(released);
+      Serial.println(buff[2]);
       if (buff[3] == '1') {
         reachAlt = true;
       }
@@ -437,6 +439,7 @@ void getBridge() {
         GPSlock = true;
       }
       else GPSlock = false;
+      printParams();
     }
     if (buff[0] == 'c') {
       
@@ -542,5 +545,12 @@ float altSim(){
     }
   }
   return alt;
+}
+
+void printParams(){
+  Serial.print(launched);
+  Serial.print(released);
+  Serial.print(reachAlt);
+  Serial.println(GPSlock);
 }
 
