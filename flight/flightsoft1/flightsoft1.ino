@@ -22,7 +22,7 @@
 
 #define RELEASE_ALTITUDE 400 // altitude set for release of cansat for container in meters
 
-#define TEAM_ID "123456" // Team ID REMEMBER TO CHANGE THIS TOO LAZY TO LOOK UP
+#define TEAM_ID "3640" // Team ID REMEMBER TO CHANGE THIS TOO LAZY TO LOOK UP
 
 #define RELEASE 'r'
 #define TAKE_PIC 'c'
@@ -238,7 +238,6 @@ void checkCmd(){
 		}
 		if(cmd == RELEASE){
       Serial.println("RELEASE CMD");
-			Bridge.println(RELEASE);
       releaseSat();
 		}
     if(cmd == 'p'){
@@ -271,6 +270,10 @@ void checkCmd(){
       Serial.println("Deleting params file.");
       deleteParams();
     }
+    if(cmd == 'l'){
+      Bridge.println('l');
+    }
+    
 		//add additional cmd checks here if needed.
 	}
 }
@@ -403,8 +406,8 @@ void saveParams(){
 }
 
 void deleteParams(){
-  if(SD.exists("PARAM")){
-    SD.remove("PARAM");
+  if(SD.exists("param")){
+    SD.remove("param");
   }
 }
 

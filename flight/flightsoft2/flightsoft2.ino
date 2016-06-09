@@ -25,7 +25,7 @@
 
 #define RELEASE_ALTITUDE 400 // altitude set for release of cansat for container in meters
 #define RELEASE_TIMEOUT 5000 //timeout for release led after it starts
-#define TEAM_ID "123456" // Team ID REMEMBER TO CHANGE THIS TOO LAZY TO LOOK UP
+#define TEAM_ID "3640" // Team ID REMEMBER TO CHANGE THIS TOO LAZY TO LOOK UP
 
 #define LAUNCH_VELOCITY 10
 #define ACCEL_THRESH 18
@@ -134,13 +134,13 @@ void setup() {
   pinMode(LED_PIN,OUTPUT);
   digitalWrite(BUZZER_PIN,LOW);
   //delay(100);
-  //digitalWrite(BUZZER_PIN,HIGH);
-  //delay(100);
-  //digitalWrite(BUZZER_PIN,LOW);
-  //delay(100);
-  //digitalWrite(BUZZER_PIN,HIGH);
-  //delay(100);
-  //digitalWrite(BUZZER_PIN,LOW);
+  digitalWrite(BUZZER_PIN,HIGH);
+  delay(100);
+  digitalWrite(BUZZER_PIN,LOW);
+  delay(100);
+  digitalWrite(BUZZER_PIN,HIGH);
+  delay(100);
+  digitalWrite(BUZZER_PIN,LOW);
   //while(1);
   delay(1000);
 }
@@ -199,9 +199,9 @@ void getData(int pos) {
 
   // pololu
   data[pos].pressure = ps.readPressureMillibars();
-  //static float baseAlt = ps.pressureToAltitudeMeters(data[pos].pressure);
-  //data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure) - baseAlt;
-  data[pos].altitude = altSim();
+  static float baseAlt = ps.pressureToAltitudeMeters(data[pos].pressure);
+  data[pos].altitude = ps.pressureToAltitudeMeters(data[pos].pressure) - baseAlt;
+  //data[pos].altitude = altSim();
   data[pos].temp = ps.readTemperatureF();
 
   //  compass.read();
@@ -461,6 +461,9 @@ void getBridge() {
       Serial.println("Releasing...");
       releaseSat();
     }
+    if(buff[0] == 'l'){
+      digitalWrite(LED_PIN,LOW);
+    }
   }
 }
 
@@ -503,7 +506,7 @@ void buzzer() {
   if(!ran){
     Serial.println("BUZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ!!!!!!!!!");
     ran = true;
-    //digitalWrite(BUZZER_PIN, HIGH);
+    digitalWrite(BUZZER_PIN, HIGH);
   }
 }
 
