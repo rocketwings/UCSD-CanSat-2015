@@ -62,7 +62,7 @@ GRAPH_BG = "#404040"
 GRAPH_BG1 = "#6C7B8B"
 TEXT_COLOR = "#FFFFFF"
 
-LogName = "testdata3.txt"
+LogName = "Data.txt"
 
 NumberOfPoints = 20
 
@@ -772,6 +772,7 @@ def SerialComm(port):
                         length = serialObj.readline()
                         length = length.rstrip()
                         print(repr(length))
+
                         img = open(JPG_NAME, "w")
                         imgBytelist = []
 
