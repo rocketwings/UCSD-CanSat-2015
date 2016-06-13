@@ -35,6 +35,8 @@
 #define BUZZER_PIN 6
 #define VOLTAGE_PIN 18
 
+#define HOUR_OFFSET -5
+
 //--------------
 // State Params
 //--------------
@@ -236,8 +238,8 @@ void getData(int pos) {
       return;  // we can fail to parse a sentence in which case we should just wait for another
   }
 
-  static unsigned long GPStime = GPS.hour * (1000 * 60 * 60) + GPS.minute * (1000 * 60) + GPS.seconds * (1000) + GPS.milliseconds;
-  data[pos].time = millis() + GPStime;
+  
+  getTime();
   
   //--------------------------------------------------------------
   //Voltage
@@ -323,6 +325,16 @@ void bridgeSend(int pos) {
   Serial.print(reachAlt);
   Serial.print(GPSlock);
   Serial.print("\n");
+
+  Serial.println(GPS.hour);
+  Serial.println(GPS.minute);
+  Serial.println(GPS.seconds);
+  Serial.println(GPS.milliseconds);
+  Serial.print((int)round(data[pos].time/(1000*60*60))%24);
+  Serial.print(",");
+  Serial.print((int)round(data[pos].time/(1000*60))%60);
+  Serial.print(",");
+  Serial.println((int)round(data[pos].time/(1000))%60);
 }
 
 void avgGenerator(int pos) {
@@ -464,6 +476,9 @@ void getBridge() {
     if(buff[0] == 'l'){
       digitalWrite(LED_PIN,LOW);
     }
+    if(buff[0] == 'b'){
+      digitalWrite(BUZZER_PIN,LOW);
+    }
   }
 }
 
@@ -511,8 +526,23 @@ void buzzer() {
 }
 
 void getTime(){
-  static unsigned long GPStime = GPS.hour * (1000 * 60 * 60) + GPS.minute * (1000 * 60) + GPS.seconds * (1000) + GPS.milliseconds;
-  data[pos].time = millis() + GPStime;
+  //Serial.println("Getting Time");
+  //static unsigned long tempNum = 32400000;
+  //static unsigned long tempTimes = ((unsigned long)9)*60*60*1000;
+  static bool timeFix = false;
+  if(GPS.satellites >=4 || timeFix){
+    static unsigned long GPStime = ((unsigned long)(GPS.hour+HOUR_OFFSET)%24) * ((unsigned long)1000 * 60 * 60) 
+      + (unsigned long)GPS.minute * ((unsigned long)1000 * 60) 
+      + (unsigned long)GPS.seconds * ((unsigned long)1000) 
+      + (unsigned long)GPS.milliseconds;
+    data[pos].time = millis()+ GPStime;
+    timeFix = 1;
+    //Serial.println(tempNum);
+    //Serial.println(tempTime
+  }
+  else{
+    data[pos].time = millis();
+  }
 }
 
 float voltage(){

@@ -329,7 +329,7 @@ class MainWindow(tk.Tk):
 
                     hour = str(int(round(temp/(1000*60*60)))%24)
 
-                    #print(hour+":"+min+":"+sec)
+                    #print(hour+":g66u8uuu7hbbvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv "+min+":"+sec)
                     datetimeobject = datetime.strptime('2015 ' +hour+":"+min+":"+sec, TIME_FMT)
                     timeListConfigured.append(datetimeobject)
                     self.dateindex = k

@@ -13,7 +13,7 @@ typedef struct Packet {
   //float gpsalt;
   //float satnum;
   //float gpsspeed;
-  unsigned long time;
+  unsigned long  time;
 //  int imgcmdCount;
   int bonus;
 } Packet_t;

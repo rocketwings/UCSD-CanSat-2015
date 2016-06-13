@@ -18,9 +18,9 @@ void loop() {
   val = sum/100;
 
   if(val>1.6){
-    servo.write(20);
+    servo.write(13);
   }
-  else servo.write(170);
+  else servo.write(175);
   // put your main code here, to run repeatedly:
   Serial.println(val);
 

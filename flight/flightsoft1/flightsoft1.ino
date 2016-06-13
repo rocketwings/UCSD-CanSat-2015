@@ -161,7 +161,13 @@ void parseSend(){
     delay(10);
 		Bridge.readBytesUntil('\n',buff,100);
     //Bridge.flush();
+    
     Xbee.println(buff);
+    
+    File file = SD.open("log",FILE_WRITE);
+    file.println(buff);
+    file.close();
+    
     Serial.println(buff);
    Xbee.listen();
     //Bridge.flush();
