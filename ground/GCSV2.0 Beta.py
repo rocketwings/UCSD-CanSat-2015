@@ -22,10 +22,14 @@ from time import sleep
 import sys
 import tkMessageBox
 from functools import partial
-from PIL import ImageTk, Image
+from PIL import ImageTk, Image, ImageFile
+import subprocess
+import tempfile
 
 
 import random
+
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # from matplotlib.figure import Figure
 # from Tkinter import ttk
@@ -91,6 +95,7 @@ ThreadStart = False
 SerialException = False
 PlotLoad = True
 
+termScroll = False
 
 # print("Initial Parameters Set")
 # ---------------------------------------------------------------------------------------
@@ -115,6 +120,30 @@ class MainWindow(tk.Tk):
         container.pack(side="top", fill="both", expand=True)
         container.grid_rowconfigure(0, weight=1)
         container.grid_columnconfigure(0, weight=1)
+
+        frameCon = tk.Frame(self)
+        #frameCon.grid(row=2, column=0, columnspan=2, sticky='WE', padx=7, pady=5)
+        frameCon.pack(side='bottom',fill='both')
+        frameCon.configure(bg=PADDING_COLOR, highlightcolor=PADDING_COLOR, highlightbackground=PADDING_COLOR,
+                           bd=1,padx=5,pady=5)
+        textCon = tk.Text(frameCon)
+        textCon.configure(height=12, bg=BACKGROUND_COLOR, fg="#FFFFFF",
+                               highlightcolor=BACKGROUND_COLOR, highlightbackground=BACKGROUND_COLOR,)
+        textCon.pack(side='left',fill='x',expand=True)
+
+        buttonCon = ttk.Button(frameCon, command=self.pauseConsole)
+        buttonCon.pack(side='right',fill='y',padx=2)
+        buttonCon.configure(text="P",width=3)
+
+        conSb = ttk.Scrollbar(frameCon)
+        conSb.pack(side='right', fill='y')
+        textCon.configure(yscrollcommand=conSb.set)
+        conSb.configure(command=textCon.yview)
+
+
+
+        oldstdout = sys.stdout
+        sys.stdout = TermRedirect(textCon, oldstdout, "stdout")
 
         self.menubar = tk.Menu(container)
 
@@ -329,7 +358,7 @@ class MainWindow(tk.Tk):
 
                     hour = str(int(round(temp/(1000*60*60)))%24)
 
-                    #print(hour+":g66u8uuu7hbbvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv "+min+":"+sec)
+                    #print(hour+":"+min+":"+sec)
                     datetimeobject = datetime.strptime('2015 ' +hour+":"+min+":"+sec, TIME_FMT)
                     timeListConfigured.append(datetimeobject)
                     self.dateindex = k
@@ -374,6 +403,12 @@ class MainWindow(tk.Tk):
             plt.tight_layout(pad=3)
             ob.frames[PageThree].canvas.show()
 
+    def pauseConsole(self):
+        global termScroll
+        termScroll = not termScroll
+
+
+
 
 class PageThree(tk.Frame):
     # creates the main page, was called page three may change name later
@@ -400,6 +435,8 @@ class PageThree(tk.Frame):
         frame3 = tk.Frame(self)
         frame3.grid(row=0, column=2, rowspan=2, sticky='NS', padx=3, pady=4)
         frame3.configure(bg=PADDING_COLOR, highlightcolor=PADDING_COLOR, highlightbackground=PADDING_COLOR)
+
+
 
         buttonsFrame = tk.Frame(self, relief=tk.SUNKEN, bd=1)
         buttonsFrame.configure(bg=BACKGROUND_COLOR, highlightcolor=BACKGROUND_COLOR,
@@ -474,6 +511,14 @@ class PageThree(tk.Frame):
         toolbar.configure(bg=BACKGROUND_COLOR, highlightcolor=BACKGROUND_COLOR, highlightbackground=BACKGROUND_COLOR,
                           padx=1)
 
+
+
+        #sys.stderr = TermRedirect(self.textCon, "stdout")
+
+        #sys.stdout = oldstdout
+
+
+
     def GetSetMarkerSymbol(self):
         # this method sets the symbol of the plot points
         global PointSymbol
@@ -524,6 +569,35 @@ class PageThree(tk.Frame):
         except ValueError:
             pass
         UpdateCanvas()
+
+
+
+class TermRedirect(object):
+    def __init__(self,widget,oldobj,tag="stdout"):
+        self.widget = widget
+        self.tag = tag
+        self.oldobj = oldobj
+        self.index = 1
+    def write(self, Str):
+        self.widget.configure(state="normal")
+        if(Str == '\n'):
+            self.widget.insert("end", Str, (self.tag,))
+        else:
+            #self.widget.configure(font=("Times",10,"bold"),fg="#00EEEE")
+            self.widget.insert("end", str(self.index) + ": " , ("index",))
+            self.widget.tag_configure("index",font=("Verdana",10,"bold"),foreground="#00EEEE")
+            self.widget.insert("end", Str, (self.tag,))
+            self.index += 1
+        self.widget.configure(state="disabled")
+        if(not termScroll):
+            self.widget.see(tk.END)
+        #self.oldobj.write(Str)
+        self.oldobj.write(Str)
+
+
+    def flush(self):
+        pass
+
 
 
 class StartPage(tk.Frame):
@@ -629,9 +703,11 @@ def LoadPlot(run):
 
     if (run == "start"):
         PlotLoad = True
+        print("Plotting Resumed")
 
     elif (run == "pause"):
         PlotLoad = False
+        print("Plotting Paused")
 
 
 def ViewPlot(PltObj, Dates, Ylist, dateindex, xlabel="Time", title="Plot", timefmt="%I:%M:%S",
@@ -905,4 +981,7 @@ if __name__ == '__main__':
                  "Port Not Set!\n\nPlease "
                  "Enter a Serial Port Before "
                  "Starting Serial!")
+
+    #oldstdout = sys.stdout
+
     ob.mainloop()
